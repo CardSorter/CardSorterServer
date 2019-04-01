@@ -1,26 +1,23 @@
-from flask import request, jsonify, json
+from flask import request, jsonify
 from flask_restful import Resource
+
 
 class CardSorterResource(Resource):
 
     def get(self):
-
-        if not request.args.get('study_id'):
-            return 'Study id not set', 400
-        study_id = request.args.get('study_id')
-
+        study_id = get_id(request)
         if request.args.get('cards'):
-            cards = getCards(study_id)
+            cards = get_cards(study_id)
             return jsonify(cards=cards)
 
     def post(self):
-        pass
+        print(request.json)
 
     def delete(self):
         pass
 
 
-def getCards(study_id: int):
+def get_cards(study_id: int):
     cards = []
     for i in range(0, 20):
         cards.append({
@@ -30,3 +27,8 @@ def getCards(study_id: int):
             })
     return cards
 
+
+def get_id(request):
+    if not request.args.get('study_id'):
+        return 'Study id not set', 400
+    return request.args.get('study_id')

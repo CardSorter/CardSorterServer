@@ -6,6 +6,7 @@ from flask_cors import CORS
 
 from flaskr import db
 from . import auth
+from .blueprints.cardSorter import card_sorter
 from flaskr.InitializeEndpoints import InitializeEndpoints
 
 
@@ -33,7 +34,7 @@ def create_app(test_config=None):
 
     database = db.get_db()
 
-    app.register_blueprint(auth.bp)
+    # app.register_blueprint(auth.bp)
 
     # First level API
 
@@ -41,9 +42,8 @@ def create_app(test_config=None):
     def hello():
         return 'Work in progress'
 
-    @app.route('/sort')
-    def serve_card_sorter():
-        return render_template('index.html')
+    # Route: /sort
+    app.register_blueprint(card_sorter)
 
     # Endpoints
     endpoints = InitializeEndpoints(app, database)
