@@ -1,11 +1,9 @@
 import os
 
-from flask import Flask, render_template
-from flask_restful import Resource, Api
+from flask import Flask
 from flask_cors import CORS
 
 from flaskr import db
-from . import auth
 from .blueprints.cardSorter import card_sorter
 from flaskr.InitializeEndpoints import InitializeEndpoints
 
@@ -32,10 +30,6 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    database = db.get_db()
-
-    # app.register_blueprint(auth.bp)
-
     # First level API
 
     @app.route('/')
@@ -46,7 +40,7 @@ def create_app(test_config=None):
     app.register_blueprint(card_sorter)
 
     # Endpoints
-    endpoints = InitializeEndpoints(app, database)
+    InitializeEndpoints(app)
 
     return app
 

@@ -1,16 +1,19 @@
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from flask_restful import Resource
+from bson import ObjectId
 import json, datetime
+
+from ..db import get_db
 
 
 class StudyResource(Resource):
-
     def get(self):
+        print('Hello', request.args.get('id'))
         if request.args.get('id'):
             return jsonify(study=
-                           get_study(request.args.get('id')))
+                           self.get_study(request.args.get('id')))
 
-        return jsonify(studies=load_studies())
+        return jsonify(studies=self.load_studies())
 
     def post(self):
         req = request.json
@@ -27,15 +30,16 @@ class StudyResource(Resource):
         study = {
             'title': req['title'],
             'description': req['description'],
-            'url': req['url'],
             'cards': req['cards'],
             'message': req['message'],
             'abandonedNo': 0,
             'completedNo': 0,
             'editDate': date,
             'isLive': True,
-            'launcedDate': date
+            'launchedDate': date
         }
+        # Save to db
+        self.create_study(study)
 
         # Create the response
         res = {
@@ -45,7 +49,7 @@ class StudyResource(Resource):
             'completedNo': 0,
             'editDate': date,
             'isLive': True,
-            'launcedDate': date
+            'launchedDate': date
         }
 
         return jsonify(study=res)
@@ -53,79 +57,41 @@ class StudyResource(Resource):
     def delete(self):
         pass
 
+    @staticmethod
+    def create_study(obj):
+        with current_app.app_context():
+            db = get_db()
+        db['studies'].insert_one(obj)
 
-def load_studies():
-    studies = []
-    date = datetime.datetime.now().isoformat()
-    for i in range(0, 20):
-        studies.append({
-            'id': i,
-            'title': 'Study #' + str(i),
-            'abandonedNo': 3,
-            'completedNo': 48,
-            'editDate': date,
-            'endDate': date,
-            'isLive': True if i % 3 == 0 else False,
-            'launcedDate': date})
-    return studies
+    @staticmethod
+    def load_studies():
+        with current_app.app_context():
+            db = get_db()
+        studies = []
+        for study in db['studies'].find({}, {
+                                                    '_id': 1,
+                                                    'title': 1,
+                                                    'abandonedNo': 1,
+                                                    'completedNo': 1,
+                                                    'editDate': 1,
+                                                    'isLive': 1,
+                                                    'launchedDate': 1}):
+            study['id'] = str(study['_id'])
+            study['_id'] = None
+            studies.append(study)
+        return studies
+
+    @staticmethod
+    def get_study(id):
+        with current_app.app_context():
+            db = get_db()
+        study = list(db['studies'].find({'_id': ObjectId(id)}))[0]
+        study['id'] = str(study['_id'])
+        study['_id'] = None
+        study['launched'] = study['launchedDate']
+        study['launchedDate'] = None
+        return study
 
 
 def check_title(title):
     return False
-
-
-def get_study(id: int):
-    date = datetime.datetime.now().isoformat()
-    return {
-        'id': id,
-        'title': 'Title',
-        'isLive': True,
-        'launched': date,
-        'participants': {
-            'completion': '50%',
-            'total': 99,
-            'completed': 49,
-            'data': [
-                ['#1', '00:05:43', '100%', '6'],
-                ['#2', '00:05:43', '100%', '6'],
-                ['#3', '00:05:43', '100%', '6'],
-                ['#4', '00:05:43', '100%', '6'],
-                ['#5', '00:05:43', '100%', '6'],
-                ['#6', '00:05:43', '100%', '6'],
-                ['#7', '00:05:43', '100%', '6'],
-                ['#8', '00:05:43', '100%', '6'],
-                ['#9', '00:05:43', '100%', '6'],
-                ['#10', '00:05:43', '100%', '6'],
-                ['#11', '00:05:43', '100%', '6'],
-            ],
-        },
-        'cards': {
-            'average': '60%',
-            'total': 100,
-            'sorted': 60,
-            'data': [
-                ['Card1', 4, 'Category1', 2],
-                ['Card2', 4, 'Category1', 2],
-                ['Card3', 4, 'Category1', 2],
-                ['Card4', 4, 'Category1', 2],
-                ['Card5', 4, 'Category1', 2],
-                ['Card6', 4, 'Category1', 2],
-                ['Card7', 4, 'Category1', 2],
-            ],
-        },
-        'categories': {
-            'similarity': '20%',
-            'total': 20,
-            'similar': 100,
-            'merged': 2,
-            'data': [
-                ['Category1', 3, 'Card1', 4, 4],
-                ['Category2', 3, 'Card1', 4, 4],
-                ['Category3', 3, 'Card1', 4, 4],
-                ['Category4', 3, 'Card1', 4, 4],
-                ['Category5', 3, 'Card1', 4, 4],
-                ['Category6', 3, 'Card1', 4, 4],
-                ['Category7', 3, 'Card1', 4, 4],
-            ],
-        }
-    }
