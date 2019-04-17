@@ -9,7 +9,7 @@ class UserResource(Resource):
         pass
 
     def post(self):
-        if request.args['register']:
+        if len(request.args) > 0 and request.args['register']:
             username = request.json.get('username')
             password = request.json.get('password')
             email = request.json.get('email')
@@ -18,10 +18,25 @@ class UserResource(Resource):
 
             if error_msg:
                 return jsonify(error=error_msg)
+
             return jsonify(user={
-                'username': username
+                'username': username,
+                'auth_token': str(user.auth_token)
             })
 
+        # Login
+        username = request.json.get('username')
+        password = request.json.get('password')
+        user = User()
+        error_msg = user.verify_user(username, password)
+
+        if error_msg:
+            return jsonify(error=error_msg)
+
+        return jsonify(user={
+            'username': username,
+            'auth_token': str(user.auth_token)
+        })
 
     def delete(self):
         pass
