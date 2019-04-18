@@ -1,14 +1,20 @@
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, redirect
 from flask_restful import Resource
 from bson import ObjectId
 import json, datetime
 
 from ..db import get_db
+from ..entities.User import User
 
 
 class StudyResource(Resource):
     def get(self):
-        print('Hello', request.args.get('id'))
+        # Check authentication
+        # auth_header = request.headers.get('Authorization')
+        # user_id = User.validate_request(auth_header)
+        # if not user_id :
+        #     return redirect('/auth', 401)
+
         if request.args.get('id'):
             return jsonify(study=
                            self.get_study(request.args.get('id')))
@@ -91,7 +97,3 @@ class StudyResource(Resource):
         study['launched'] = study['launchedDate']
         study['launchedDate'] = None
         return study
-
-
-def check_title(title):
-    return False

@@ -1,6 +1,7 @@
+import datetime
+import jwt
 from flask import current_app
 from passlib.apps import custom_app_context as pwd_context
-import jwt, datetime
 
 from ..db import get_db
 
@@ -36,7 +37,7 @@ class User:
             'email': email
         })
 
-        self.auth_token = User.encode_auth_token(str(user.inserted_id))
+        self.auth_token = User._encode_auth_token(str(user.inserted_id))
         return None
 
     def verify_user(self, username, password):
@@ -50,14 +51,23 @@ class User:
             user = list(self.db.find({'username': username}, {'password': 1}))[0]
             self.password_hash = user['password']
             if self._verify_password(password):
-                self.auth_token = User.encode_auth_token(str(user['_id']))
+                self.auth_token = User._encode_auth_token(str(user['_id']))
             else:
                 return {'message': 'INVALID PASSWORD'}
 
         else:
             return {'message': 'EMPTY PASSWORD'}
 
-
+    @staticmethod
+    def validate_request(auth_header):
+        if auth_header:
+            auth_token = auth_header.split(" ")[1]
+        else:
+            auth_token = ''
+        if auth_token:
+            return User._decode_auth_token(auth_token)
+        else:
+            return False
 
 
     def _hash_password(self, password):
@@ -67,7 +77,7 @@ class User:
         return pwd_context.verify(password, self.password_hash)
 
     @staticmethod
-    def encode_auth_token(user_id):
+    def _encode_auth_token(user_id):
         """
         Generates the Auth Token
         :return: string
@@ -87,7 +97,7 @@ class User:
             return e
 
     @staticmethod
-    def decode_auth_token(auth_token):
+    def _decode_auth_token(auth_token):
         """
         Decodes the auth token
         :param auth_token:

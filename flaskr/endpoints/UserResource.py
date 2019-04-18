@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from flask_restful import Resource
 
 from ..entities.User import User
@@ -9,6 +9,7 @@ class UserResource(Resource):
         pass
 
     def post(self):
+
         if len(request.args) > 0 and request.args['register']:
             username = request.json.get('username')
             password = request.json.get('password')
@@ -19,24 +20,25 @@ class UserResource(Resource):
             if error_msg:
                 return jsonify(error=error_msg)
 
-            return jsonify(user={
-                'username': username,
-                'auth_token': str(user.auth_token)
-            })
+            resp = make_response(jsonify(user={
+                'username': username
+            }))
 
-        # Login
-        username = request.json.get('username')
-        password = request.json.get('password')
-        user = User()
-        error_msg = user.verify_user(username, password)
+        else:  # Login
+            username = request.json.get('username')
+            password = request.json.get('password')
+            user = User()
+            error_msg = user.verify_user(username, password)
 
-        if error_msg:
-            return jsonify(error=error_msg)
+            if error_msg:
+                return jsonify(error=error_msg)
 
-        return jsonify(user={
-            'username': username,
-            'auth_token': str(user.auth_token)
-        })
+            resp = make_response(jsonify(user={
+                'username': username
+            }))
+
+        resp.set_cookie('auth_token', str(user.auth_token))
+        return resp
 
     def delete(self):
         pass
