@@ -1,4 +1,6 @@
-from flask import request, jsonify, make_response
+import base64
+
+from flask import request, jsonify, make_response, url_for, after_this_request
 from flask_restful import Resource
 
 from ..entities.User import User
@@ -20,8 +22,9 @@ class UserResource(Resource):
             if error_msg:
                 return jsonify(error=error_msg)
 
-            resp = make_response(jsonify(user={
-                'username': username
+            resp = make_response(jsonify({
+                'location': url_for('designer.show'),
+                'auth_token':  user.auth_token.decode()
             }))
 
         else:  # Login
@@ -33,11 +36,11 @@ class UserResource(Resource):
             if error_msg:
                 return jsonify(error=error_msg)
 
-            resp = make_response(jsonify(user={
-                'username': username
+            resp = make_response(jsonify({
+                'location': url_for('designer.show'),
+                'auth_token':  user.auth_token.decode()
             }))
 
-        resp.set_cookie('auth_token', str(user.auth_token))
         return resp
 
     def delete(self):

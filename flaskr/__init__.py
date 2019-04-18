@@ -16,7 +16,7 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True, static_folder='./public/card_sorter/',
                 template_folder="./public/card_sorter/")
     app.config.from_mapping(
-        SECRET_KEY='dev',
+        SECRET_KEY='development',
         # DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
     )
     CORS(app)

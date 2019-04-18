@@ -1,8 +1,9 @@
-from flask import request, jsonify, current_app, redirect
+from flask import request, jsonify, current_app, redirect, url_for, make_response, Response
 from flask_restful import Resource
 from bson import ObjectId
 import json, datetime
 
+from flaskr.entities.Study import Study
 from ..db import get_db
 from ..entities.User import User
 
@@ -10,46 +11,39 @@ from ..entities.User import User
 class StudyResource(Resource):
     def get(self):
         # Check authentication
-        # auth_header = request.headers.get('Authorization')
-        # user_id = User.validate_request(auth_header)
-        # if not user_id :
-        #     return redirect('/auth', 401)
+        auth_header = request.headers.get('Authorization')
+        user_id = User.validate_request(auth_header)
+        if not user_id or isinstance(user_id, dict):
+            return make_response(jsonify(location=url_for('auth.show')), 401)
 
+        study = Study()
+
+        # Load specific study
         if request.args.get('id'):
             return jsonify(study=
-                           self.get_study(request.args.get('id')))
+                           study.get_study((request.args.get('id')), user_id))
 
-        return jsonify(studies=self.load_studies())
+        # Load all studies
+        return jsonify(studies=study.get_studies(user_id))
 
     def post(self):
+        # Check authentication
+        auth_header = request.headers.get('Authorization')
+        user_id = User.validate_request(auth_header)
+        if not user_id or isinstance(user_id, dict):
+            return make_response(jsonify(location=url_for('auth.show')), 401)
+
         req = request.json
-        args = request.args
-
-        if args.get('title'):
-            if not check_title(req.title):
-                return jsonify(isValid=False), 409
-            else:
-                return jsonify(isValid=True), 200
-
+        study = Study()
+        error = study.create_study(req['title'], req['description'], req['cards'], req['message'], user_id)
         date = datetime.datetime.now().isoformat()
-        # Create the object
-        study = {
-            'title': req['title'],
-            'description': req['description'],
-            'cards': req['cards'],
-            'message': req['message'],
-            'abandonedNo': 0,
-            'completedNo': 0,
-            'editDate': date,
-            'isLive': True,
-            'launchedDate': date
-        }
-        # Save to db
-        self.create_study(study)
+
+        if error:
+            return jsonify(error=error)
 
         # Create the response
         res = {
-            'id': date,
+            'id': str(study.study_id),
             'title': req['title'],
             'abandonedNo': 0,
             'completedNo': 0,
@@ -62,38 +56,3 @@ class StudyResource(Resource):
 
     def delete(self):
         pass
-
-    @staticmethod
-    def create_study(obj):
-        with current_app.app_context():
-            db = get_db()
-        db['studies'].insert_one(obj)
-
-    @staticmethod
-    def load_studies():
-        with current_app.app_context():
-            db = get_db()
-        studies = []
-        for study in db['studies'].find({}, {
-                                                    '_id': 1,
-                                                    'title': 1,
-                                                    'abandonedNo': 1,
-                                                    'completedNo': 1,
-                                                    'editDate': 1,
-                                                    'isLive': 1,
-                                                    'launchedDate': 1}):
-            study['id'] = str(study['_id'])
-            study['_id'] = None
-            studies.append(study)
-        return studies
-
-    @staticmethod
-    def get_study(id):
-        with current_app.app_context():
-            db = get_db()
-        study = list(db['studies'].find({'_id': ObjectId(id)}))[0]
-        study['id'] = str(study['_id'])
-        study['_id'] = None
-        study['launched'] = study['launchedDate']
-        study['launchedDate'] = None
-        return study

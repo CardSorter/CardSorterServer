@@ -34,7 +34,8 @@ class User:
         user = self.db.insert_one({
             'username': username,
             'password': self.password_hash,
-            'email': email
+            'email': email,
+            'studies': [],
         })
 
         self.auth_token = User._encode_auth_token(str(user.inserted_id))
@@ -59,16 +60,11 @@ class User:
             return {'message': 'EMPTY PASSWORD'}
 
     @staticmethod
-    def validate_request(auth_header):
-        if auth_header:
-            auth_token = auth_header.split(" ")[1]
-        else:
-            auth_token = ''
+    def validate_request(auth_token):
         if auth_token:
             return User._decode_auth_token(auth_token)
         else:
             return False
-
 
     def _hash_password(self, password):
         self.password_hash = pwd_context.encrypt(password)
@@ -101,7 +97,7 @@ class User:
         """
         Decodes the auth token
         :param auth_token:
-        :return: integer|string
+        :return: obj|string
         """
         try:
             payload = jwt.decode(auth_token, current_app.config.get('SECRET_KEY'))
