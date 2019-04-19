@@ -23,7 +23,7 @@ class UserResource(Resource):
                 return jsonify(error=error_msg)
 
             resp = make_response(jsonify({
-                'location': url_for('designer.show'),
+                'location': 'http://83.212.97.237/',
                 'auth_token':  user.auth_token.decode()
             }))
 
@@ -37,7 +37,7 @@ class UserResource(Resource):
                 return jsonify(error=error_msg)
 
             resp = make_response(jsonify({
-                'location': url_for('designer.show'),
+                'location': 'http://83.212.97.237/',
                 'auth_token':  user.auth_token.decode()
             }))
 

@@ -34,4 +34,5 @@ except OSError:
 # Endpoints
 InitializeEndpoints(app)
 
-app.run()
+#app.run()
+

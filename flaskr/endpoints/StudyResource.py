@@ -14,7 +14,7 @@ class StudyResource(Resource):
         auth_header = request.headers.get('Authorization')
         user_id = User.validate_request(auth_header)
         if not user_id or isinstance(user_id, dict):
-            return make_response(jsonify(location=url_for('auth.show')), 401)
+            return make_response(jsonify(location='http://83.212.97.237/auth'), 401)
 
         study = Study()
 
@@ -31,7 +31,7 @@ class StudyResource(Resource):
         auth_header = request.headers.get('Authorization')
         user_id = User.validate_request(auth_header)
         if not user_id or isinstance(user_id, dict):
-            return make_response(jsonify(location=url_for('auth.show')), 401)
+            return make_response(jsonify(location='http://83.212.97.237/auth'), 401)
 
         req = request.json
         study = Study()
