@@ -1,11 +1,9 @@
 from flask import request, jsonify, current_app, redirect, url_for, make_response, Response
 from flask_restful import Resource
-from bson import ObjectId
-import json, datetime
+import datetime
 
 from flaskr.entities.Study import Study
-from ..db import get_db
-from ..entities.User import User
+from flaskr.entities.User import User
 
 
 class StudyResource(Resource):
@@ -30,6 +28,7 @@ class StudyResource(Resource):
         # Check authentication
         auth_header = request.headers.get('Authorization')
         user_id = User.validate_request(auth_header)
+
         if not user_id or isinstance(user_id, dict):
             return make_response(jsonify(location='http://83.212.97.237/auth'), 401)
 
@@ -52,6 +51,7 @@ class StudyResource(Resource):
             'launchedDate': date
         }
 
+        print('response', res)
         return jsonify(study=res)
 
     def delete(self):
