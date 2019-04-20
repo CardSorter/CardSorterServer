@@ -1,5 +1,3 @@
-import base64
-
 from flask import request, jsonify, make_response, url_for, after_this_request
 from flask_restful import Resource
 

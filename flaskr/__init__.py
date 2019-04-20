@@ -15,7 +15,7 @@ app.config.from_mapping(
     SECRET_KEY='development',
     # DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
 )
-CORS(app)
+CORS(app, supports_credentials=True)
 
 if test_config is None:
     app.config.from_pyfile('Config.py', silent=True)
