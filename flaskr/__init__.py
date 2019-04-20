@@ -5,22 +5,15 @@ from flask_cors import CORS
 
 from flaskr.InitializeEndpoints import InitializeEndpoints
 
-
-test_config = None
-
 # Configuration
 app = Flask(__name__, instance_relative_config=True, static_folder='./public/card_sorter/',
             template_folder="./public/card_sorter/")
 app.config.from_mapping(
     SECRET_KEY='development',
-    # DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
 )
 CORS(app, supports_credentials=True)
 
-if test_config is None:
-    app.config.from_pyfile('Config.py', silent=True)
-else:
-    app.config.from_mapping(test_config)
+app.config.from_pyfile('Config.py', silent=True)
 
 # Ensure the instance folder exists
 try:
@@ -34,5 +27,5 @@ except OSError:
 # Endpoints
 InitializeEndpoints(app)
 
-#app.run()
+# app.run()
 

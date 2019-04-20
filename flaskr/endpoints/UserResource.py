@@ -1,7 +1,8 @@
-from flask import request, jsonify, make_response, url_for, after_this_request
+from flask import request, jsonify, make_response, current_app
 from flask_restful import Resource
 
 from ..entities.User import User
+from flaskr.Config import Config
 
 
 class UserResource(Resource):
@@ -21,7 +22,7 @@ class UserResource(Resource):
                 return jsonify(error=error_msg)
 
             resp = make_response(jsonify({
-                'location': 'http://83.212.97.237/',
+                'location': Config.url,
                 'auth_token':  user.auth_token.decode()
             }))
 
@@ -35,7 +36,7 @@ class UserResource(Resource):
                 return jsonify(error=error_msg)
 
             resp = make_response(jsonify({
-                'location': 'http://83.212.97.237/',
+                'location': Config.url,
                 'auth_token':  user.auth_token.decode()
             }))
 

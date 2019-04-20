@@ -48,7 +48,8 @@ class Study:
 
     def get_study(self, study_id, user_id):
         # Check if the study belongs to the user
-        available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]
+        available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
+
         if ObjectId(study_id) not in available_studies:
             return {'message': 'INVALID STUDY'}
 

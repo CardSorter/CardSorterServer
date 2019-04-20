@@ -1,7 +1,8 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from flask_restful import Resource
 import datetime
 
+from flaskr.Config import Config
 from flaskr.entities.Study import Study
 from flaskr.entities.User import User
 
@@ -12,7 +13,7 @@ class StudyResource(Resource):
         auth_header = request.headers.get('Authorization')
         user_id = User.validate_request(auth_header)
         if not user_id or isinstance(user_id, dict):
-            return make_response(jsonify(location='http://83.212.97.237/auth'), 401)
+            return make_response(jsonify(location=Config.url+'/auth'), 401)
 
         study = Study()
 
@@ -30,7 +31,7 @@ class StudyResource(Resource):
         user_id = User.validate_request(auth_header)
 
         if not user_id or isinstance(user_id, dict):
-            return make_response(jsonify(location='http://83.212.97.237/auth'), 401)
+            return make_response(jsonify(location=Config.url+'/auth'), 401)
 
         req = request.json
         study = Study()
