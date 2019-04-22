@@ -38,3 +38,11 @@ class Participant:
 
         # Link participant to the study
         self.studies.update_one({'_id': ObjectId(study_id)}, {'$push': {'participants': self.participant_id}})
+
+        # Increment completed / abandoned
+        if cards_sorted == 100:
+            completed = list(self.studies.find({'_id': ObjectId(study_id)}, {'completedNo': 1}))[0]['completedNo']
+            self.studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'completedNo': completed + 1}})
+        else:
+            abandoned = list(self.studies.find({'_id': ObjectId(study_id)}, {'abandonedNo': 1}))[0]['abandonedNo']
+            self.studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'abandonedNo': abandoned + 1}})

@@ -65,7 +65,7 @@ class Study:
         for participant_id in study['participants']:
             participant = list(self.participants.find({'_id': participant_id},
                                                       {'_id': 0, 'cards_sorted': 1, 'categories_no': 1}))[0]
-            participants.append([no, 'N/A', participant['cards_sorted'], participant['categories_no']])
+            participants.append(['#' + str(no), 'N/A', participant['cards_sorted'], participant['categories_no']])
             no += 1
 
         # Calculate completion
@@ -85,7 +85,12 @@ class Study:
         return study
 
     def get_cards(self, study_id):
-        study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1}))[0]
+        study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1}))
+
+        if len(study) == 0:
+            return {'message': 'STUDY NOT FOUND'}
+        study = study[0]
+
         cards = []
         for card in study['cards'].values():
             cards.append(card)

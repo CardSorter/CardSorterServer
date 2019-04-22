@@ -1,16 +1,25 @@
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from flask_restful import Resource
 
 from flaskr.entities.Study import Study
 from flaskr.entities.Participant import Participant
 
+
 class CardSorterResource(Resource):
 
     def get(self):
+
         study_id = get_id(request)
+        if isinstance(study_id, dict) and study_id['error']:
+            return make_response(jsonify(error={'message': 'STUDY NOT FOUND'}), 404)
+
         if request.args.get('cards'):
             study = Study()
             cards = study.get_cards(study_id)
+
+            if isinstance(cards, dict) and cards['error']:
+                return make_response(jsonify(error=cards), 404)
+
             return jsonify(cards=cards)
 
     def post(self):
@@ -45,5 +54,5 @@ def get_cards(study_id: int):
 
 def get_id(request):
     if not request.args.get('study_id'):
-        return 'Study id not set', 400
+        return {'error': 404}
     return request.args.get('study_id')

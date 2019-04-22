@@ -52,7 +52,6 @@ class StudyResource(Resource):
             'launchedDate': date
         }
 
-        print('response', res)
         return jsonify(study=res)
 
     def delete(self):
