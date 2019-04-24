@@ -73,7 +73,7 @@ class Study:
             no += 1
 
         total = len(study['participants'])
-        completed = len(list(self.participants.find({'cards_sorted': '100%'})))
+        completed = len(list(self.participants.find({'cards_sorted': 100})))
 
         study['participants'] = {
             'completion': study['stats']['completion'],
@@ -101,6 +101,9 @@ class Study:
             cards.append([card['name'], categories_no, categories, frequencies])
 
         study['cards'] = {
+            'average': str(study['stats']['average_sort']) + '%',
+            'total': total,
+            'sorted': int(total * study['stats']['average_sort'] * (1/100)),
             'data': cards,
         }
 

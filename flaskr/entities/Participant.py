@@ -31,7 +31,7 @@ class Participant:
         item = self.participants.insert_one({
             'categories': categories,
             'not_sorted': non_sorted,
-            'cards_sorted': str(cards_sorted)+'%',
+            'cards_sorted': cards_sorted,
             'categories_no': categories_no,
         })
 

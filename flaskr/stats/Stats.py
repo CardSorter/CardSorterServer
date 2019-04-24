@@ -14,13 +14,19 @@ def update_stats(study_id):
     # Calculate completion
     total = len(study['participants'])
     completed = 0
+    sort_percentages = 0
     for participant_id in study['participants']:
         participant = list(participants.find({'_id': ObjectId(participant_id)}))[0]
-        if participant['cards_sorted'] == '100%':
+        if participant['cards_sorted'] == 100:
             completed += 1
+        sort_percentages += participant['cards_sorted']
 
     completion = str(int(completed / total * 100)) + '%'
     studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.completion': completion}})
+
+    # Calculate average sort
+    average_sort = int(sort_percentages/total)
+    studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.average_sort': average_sort}})
 
 
 def update_card_stats(study_id, new_participant_id):
@@ -58,7 +64,6 @@ def update_card_stats(study_id, new_participant_id):
             if not found:
                 studies.update_one({'_id': ObjectId(study_id)}, {'$push': {'cards.' + str(card_id) + '.categories':
                                                                            category_name}})
-
             try:
                 studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {'cards.' + str(card_id) + '.frequencies.' +
                                                                           str(category_no): 1}})
