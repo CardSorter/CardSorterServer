@@ -2,6 +2,7 @@ from bson import ObjectId
 from flask import current_app, jsonify
 
 from flaskr.db import get_db
+from flaskr.stats.Stats import update_card_stats
 
 
 class Participant:
@@ -46,3 +47,5 @@ class Participant:
         else:
             abandoned = list(self.studies.find({'_id': ObjectId(study_id)}, {'abandonedNo': 1}))[0]['abandonedNo']
             self.studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'abandonedNo': abandoned + 1}})
+
+        update_card_stats(study_id, str(self.participant_id))

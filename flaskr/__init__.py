@@ -21,8 +21,6 @@ try:
 except OSError:
     pass
 
-# First level API
-
 
 # Endpoints
 InitializeEndpoints(app)

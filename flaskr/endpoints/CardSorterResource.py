@@ -3,6 +3,7 @@ from flask_restful import Resource
 
 from flaskr.entities.Study import Study
 from flaskr.entities.Participant import Participant
+from flaskr.stats.Stats import update_stats
 
 
 class CardSorterResource(Resource):
@@ -35,6 +36,7 @@ class CardSorterResource(Resource):
             return jsonify(error=error)
 
         study = Study()
+        update_stats(study_id)
         return jsonify(study.get_thanks_message(study_id))
 
     def delete(self):

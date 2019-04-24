@@ -25,7 +25,8 @@ class Study:
             'completedNo': 0,
             'editDate': date,
             'isLive': True,
-            'launchedDate': date
+            'launchedDate': date,
+            'participants': [],
         }
         self._post_study(study)
         # Link study to the user
@@ -58,8 +59,11 @@ class Study:
         study['id'] = str(study['_id'])
         study['_id'] = None
 
+        # Make full json structure
+        # Calculate participants data
+
         # Make the json array specified
-        # data: 0: participant id 1: time taken 2: cards sorted 3: categories created
+        # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
         participants = []
         no = 1
         for participant_id in study['participants']:
@@ -68,17 +72,36 @@ class Study:
             participants.append(['#' + str(no), 'N/A', participant['cards_sorted'], participant['categories_no']])
             no += 1
 
-        # Calculate completion
         total = len(study['participants'])
         completed = len(list(self.participants.find({'cards_sorted': '100%'})))
 
-        # Make full json structure
-
         study['participants'] = {
-            'completion': str(int(completed/total * 100)) + '%',
+            'completion': study['stats']['completion'],
             'total': total,
             'completed': completed,
             'data': participants
+        }
+
+        # Calculate cards data
+
+        # Make the json array specified
+        # data: 0: card_name 1: categories_no 2: categories names 3: frequency
+        cards = []
+        for card_id in study['cards']:
+            card = study['cards'][card_id]
+            try:
+                categories = study['cards'][card_id]['categories']
+            except KeyError:
+                categories = []
+            try:
+                frequencies = study['cards'][card_id]['frequencies']
+            except KeyError:
+                frequencies = []
+            categories_no = len(categories)
+            cards.append([card['name'], categories_no, categories, frequencies])
+
+        study['cards'] = {
+            'data': cards,
         }
 
         print(study)
@@ -99,7 +122,6 @@ class Study:
     def get_thanks_message(self, study_id):
         message = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0]
         return message
-
 
     def _post_study(self, study):
         item = self.studies.insert_one(study)
