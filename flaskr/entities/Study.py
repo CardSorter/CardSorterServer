@@ -69,7 +69,8 @@ class Study:
         for participant_id in study['participants']:
             participant = list(self.participants.find({'_id': participant_id},
                                                       {'_id': 0, 'cards_sorted': 1, 'categories_no': 1}))[0]
-            participants.append(['#' + str(no), 'N/A', participant['cards_sorted'], participant['categories_no']])
+            participants.append(['#' + str(no), 'N/A', str(participant['cards_sorted']) + '%'
+                                , participant['categories_no']])
             no += 1
 
         total = len(study['participants'])
@@ -103,11 +104,30 @@ class Study:
         study['cards'] = {
             'average': str(study['stats']['average_sort']) + '%',
             'total': total,
-            'sorted': int(total * study['stats']['average_sort'] * (1/100)),
+            'sorted': int(total * study['stats']['average_sort'] * (1 / 100)),
             'data': cards,
         }
 
-        print(study)
+        # Calculate categories data
+
+        # Make the json array specified
+        # data: 0: category name 1: cards no 2: cards 3: frequency 4: participants
+        categories = []
+        for category_name in study['categories']:
+            category = study['categories'][category_name]
+            print(category)
+            categories.append([category_name, len(category['cards']), category['cards'],
+                               category['frequencies'], category['participants']])
+
+        study['categories'] = {
+            'similarity': '0%',
+            'total': len(categories),
+            'similar': 0,
+            'merged': 0,
+            'data': categories,
+        }
+
+        # print(study)
         return study
 
     def get_cards(self, study_id):
