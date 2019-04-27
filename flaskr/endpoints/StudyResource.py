@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response, current_app
+from flask import request, jsonify, make_response
 from flask_restful import Resource
 import datetime
 
@@ -14,6 +14,10 @@ class StudyResource(Resource):
         user_id = User.validate_request(auth_header)
         if not user_id or isinstance(user_id, dict):
             return make_response(jsonify(location=Config.url+'/auth'), 401)
+
+        if request.args.get('username'):
+            user = User()
+            return jsonify(username=user.get_username(user_id))
 
         study = Study()
 
@@ -49,7 +53,8 @@ class StudyResource(Resource):
             'completedNo': 0,
             'editDate': date,
             'isLive': True,
-            'launchedDate': date
+            'launchedDate': date,
+            'url': Config.url + '/study/' + str(study.study_id),
         }
 
         return jsonify(study=res)

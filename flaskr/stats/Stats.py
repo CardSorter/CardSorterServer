@@ -110,28 +110,23 @@ def update_categories_stats(study_id, new_participant_id):
         print('Category name:', categories_category)
         for card_id in participant['categories'][category_id]['cards']:
             card_name = study['cards'][str(card_id)]['name']
+
+            found = False
+            card_no = 0
             try:
-                found = False
-                card_no = 0
                 for study_card in study_categories[category_name]['cards']:
-                    print('Card name:', card_name)
-                    print('Matching card:', card_name)
                     if card_name == study_card:
-                        print('MATCH')
                         found = True
                         break
                     card_no += 1
             except KeyError:
-                print('Not found key:', card_name)
                 found = False
 
             if not found:
                 studies.update_one({'_id': ObjectId(study_id)}, {'$push': {categories_category + '.cards': card_name}})
                 studies.update_one({'_id': ObjectId(study_id)}, {'$push': {categories_category + '.frequencies': 1}})
-                print('Added')
             else:
                 studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.frequencies.'
                                                                           + str(card_no): 1}})
-                print('Incremented')
 
         studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.participants': 1}})

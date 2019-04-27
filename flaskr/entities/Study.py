@@ -66,14 +66,22 @@ class Study:
         # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
         participants = []
         no = 1
-        for participant_id in study['participants']:
-            participant = list(self.participants.find({'_id': participant_id},
-                                                      {'_id': 0, 'cards_sorted': 1, 'categories_no': 1}))[0]
-            participants.append(['#' + str(no), 'N/A', str(participant['cards_sorted']) + '%'
-                                , participant['categories_no']])
-            no += 1
+        try:
+            for participant_id in study['participants']:
+                participant = list(self.participants.find({'_id': participant_id},
+                                                          {'_id': 0, 'cards_sorted': 1, 'categories_no': 1}))[0]
+                participants.append(['#' + str(no), 'N/A', str(participant['cards_sorted']) + '%'
+                                    , participant['categories_no']])
+                no += 1
+        except KeyError:
+            return {'participants': 0}
 
         total = len(study['participants'])
+
+        # Return no participants json
+        if total == 0:
+            return {'participants': 0}
+
         completed = len(list(self.participants.find({'cards_sorted': 100})))
 
         study['participants'] = {

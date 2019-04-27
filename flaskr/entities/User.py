@@ -1,5 +1,6 @@
 import datetime
 import jwt
+from bson import ObjectId
 from flask import current_app
 from passlib.apps import custom_app_context as pwd_context
 
@@ -59,6 +60,9 @@ class User:
         else:
             return {'message': 'EMPTY PASSWORD'}
 
+    def get_username(self, user_id):
+        return list(self.db.find({'_id': ObjectId(user_id)}))[0]['username']
+
     @staticmethod
     def validate_request(auth_token):
         if auth_token:
@@ -80,7 +84,7 @@ class User:
         """
         try:
             payload = {
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=30),
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=60),
                 'iat': datetime.datetime.utcnow(),
                 'sub': user_id
             }
