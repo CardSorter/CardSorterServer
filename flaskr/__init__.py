@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask
+from flask import Flask, g
 from flask_cors import CORS
 
 from flaskr.InitializeEndpoints import InitializeEndpoints
@@ -21,10 +21,8 @@ try:
 except OSError:
     pass
 
-
 # Endpoints
 InitializeEndpoints(app)
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
-

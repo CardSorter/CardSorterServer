@@ -123,7 +123,6 @@ class Study:
         categories = []
         for category_name in study['categories']:
             category = study['categories'][category_name]
-            print(category)
             categories.append([category_name, len(category['cards']), category['cards'],
                                category['frequencies'], category['participants']])
 
@@ -135,7 +134,6 @@ class Study:
             'data': categories,
         }
 
-        # print(study)
         return study
 
     def get_cards(self, study_id):
