@@ -107,7 +107,6 @@ def update_categories_stats(study_id, new_participant_id):
                 i += 1
 
         categories_category = 'categories.' + str(category_name)
-        print('Category name:', categories_category)
         for card_id in participant['categories'][category_id]['cards']:
             card_name = study['cards'][str(card_id)]['name']
 
@@ -130,3 +129,66 @@ def update_categories_stats(study_id, new_participant_id):
                                                                           + str(card_no): 1}})
 
         studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.participants': 1}})
+
+
+def build_similarity_matrix(study_id):
+    with current_app.app_context():
+        studies = get_db()['studies']
+
+    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
+
+    # Build the padding array
+    card_names = []
+    times_in_same_category = []
+    siblings = 1
+    i = 0
+    for card in study['cards']:
+        card_name = study['cards'][card]['name']
+        card_names.append(card_name)
+        times_in_same_category.append([])
+        for j in range(0, siblings):
+            times_in_same_category[i].append(0)
+        siblings += 1
+        i += 1
+
+    studies.update({'_id': ObjectId(study_id)}, {'$set': {
+        'stats.similarities.card_names': card_names,
+        'stats.similarities.times_in_same_category': times_in_same_category,
+    }})
+
+
+def update_similarity_matrix(study_id, new_participant_id):
+    with current_app.app_context():
+        studies = get_db()['studies']
+        participants = get_db()['participants']
+
+    participant = list(participants.find({'_id': ObjectId(new_participant_id)}))[0]
+    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
+
+    card_names = study['stats']['similarities']['card_names']
+    times_in_same_category = study['stats']['similarities']['times_in_same_category']
+    all_cards = study['cards']
+
+    for category_name in participant['categories']:
+        category = participant['categories'][category_name]
+        cards = category['cards']
+
+        for card_id in cards:
+            # Get the name corresponding to the id
+            card_name = all_cards[str(card_id)]['name']
+            index = card_names.index(str(card_name))
+
+            for card2_id in cards:
+                # Get the name corresponding to the id
+                card2_name = all_cards[str(card2_id)]['name']
+                index2 = card_names.index(str(card2_name))
+
+                # Calculate only the left triangle
+                if index < index2:
+                    break
+
+                times_in_same_category[index][index2] += 1
+
+    studies.update_one({'_id': ObjectId(study_id)}, {'$set': {
+        'stats.similarities.times_in_same_category': times_in_same_category
+    }})

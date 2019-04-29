@@ -21,6 +21,13 @@ try:
 except OSError:
     pass
 
+#
+# @app.teardown_appcontext
+# def close_db(error):
+#     if hasattr(g, 'conn'):
+#         g.conn.close()
+#         print('Closing connection')
+
 # Endpoints
 InitializeEndpoints(app)
 

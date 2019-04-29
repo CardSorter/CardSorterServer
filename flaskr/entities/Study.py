@@ -4,6 +4,7 @@ from bson import ObjectId
 from flask import current_app
 
 from flaskr.db import get_db
+from flaskr.stats.Stats import build_similarity_matrix
 
 
 class Study:
@@ -29,6 +30,10 @@ class Study:
             'participants': [],
         }
         self._post_study(study)
+
+        # Create the appropriate fields
+        build_similarity_matrix(str(self.study_id))
+
         # Link study to the user
         self.users.update_one({'_id': ObjectId(user_id)}, {'$push': {'studies': self.study_id}})
 
@@ -133,8 +138,32 @@ class Study:
             'merged': 0,
             'data': categories,
         }
+        study['similarityMatrix'] = self._convert_similarity_matrix(study)
 
         return study
+
+    @staticmethod
+    def _convert_similarity_matrix(study):
+        """
+        Converts the times each card was found in the same category to the actual percentage.
+        This also includes the times that a card was not sorted. Meaning that a card can be sorted with it's self
+        less than 100%.
+        :param study: the study document
+        :return: the similarity matrix
+        """
+        total_sorts = len(study['participants'])
+        card_names = study['stats']['similarities']['card_names']
+        similarity_matrix = []
+        no = 0
+        for line in study['stats']['similarities']['times_in_same_category']:
+            for i in range(1, len(line)):
+                line[i-1] = (line[i]/total_sorts) * 100
+
+            line[len(line) - 1] = card_names[no]
+            similarity_matrix.append(line)
+            no += 1
+
+        return similarity_matrix
 
     def get_cards(self, study_id):
         study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1}))

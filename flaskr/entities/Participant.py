@@ -2,7 +2,7 @@ from bson import ObjectId
 from flask import current_app, jsonify
 
 from flaskr.db import get_db
-from flaskr.stats.Stats import update_card_stats, update_categories_stats
+from flaskr.stats.Stats import update_card_stats, update_categories_stats, update_similarity_matrix
 
 
 class Participant:
@@ -50,3 +50,4 @@ class Participant:
 
         update_card_stats(study_id, str(self.participant_id))
         update_categories_stats(study_id, str(self.participant_id))
+        update_similarity_matrix(study_id, str(self.participant_id))

@@ -18,7 +18,8 @@ class CardSorterResource(Resource):
             study = Study()
             cards = study.get_cards(study_id)
 
-            if isinstance(cards, dict) and cards['error']:
+            print(cards)
+            if isinstance(cards, dict) and cards['message']:
                 return make_response(jsonify(error=cards), 404)
 
             return jsonify(cards=cards)
