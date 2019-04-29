@@ -12,6 +12,7 @@ class CardSorterResource(Resource):
 
         study_id = get_id(request)
         if isinstance(study_id, dict) and study_id['error']:
+            print('error')
             return make_response(jsonify(error={'message': 'STUDY NOT FOUND'}), 404)
 
         if request.args.get('cards'):
@@ -43,18 +44,7 @@ class CardSorterResource(Resource):
         pass
 
 
-def get_cards(study_id: int):
-    cards = []
-    for i in range(0, 20):
-        cards.append({
-                'id': i,
-                'title': 'Card' + str(i),
-                'description': 'Lorem ipsum sit dolor',
-            })
-    return cards
-
-
-def get_id(request):
-    if not request.args.get('study_id'):
+def get_id(req):
+    if not req.args.get('study_id') or len(req.args.get('study_id')) == 0 or req.args.get('study_id') == 'null':
         return {'error': 404}
-    return request.args.get('study_id')
+    return req.args.get('study_id')
