@@ -6,6 +6,7 @@ from math import ceil
 
 from flaskr.db import get_db
 from flaskr.stats.Stats import build_similarity_matrix
+from flaskr.Config import Config
 
 
 class Study:
@@ -89,13 +90,21 @@ class Study:
                                     , participant['categories_no']])
                 no += 1
         except KeyError:
-            return {'participants': 0}
+            return {
+                'participants': 0,
+                'shareUrl': Config.url + '?id=' + str(study['id'])
+            }
 
         total = len(study['participants'])
 
         # Return no participants json
         if total == 0:
-            return {'participants': 0}
+            return {
+                'participants': 0,
+                'shareUrl': Config.url + '?id=' + str(study['id'])
+            }
+
+        study['shareUrl'] = Config.url + '?id=' + str(study['id'])
 
         completed = len(list(self.participants.find({'cards_sorted': 100})))
 
