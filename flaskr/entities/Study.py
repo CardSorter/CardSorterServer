@@ -2,6 +2,7 @@ import datetime
 
 from bson import ObjectId
 from flask import current_app
+from math import ceil
 
 from flaskr.db import get_db
 from flaskr.stats.Stats import build_similarity_matrix
@@ -151,13 +152,13 @@ class Study:
         :param study: the study document
         :return: the similarity matrix
         """
-        total_sorts = len(study['participants'])
+        total_sorts = len(study['participants']['data'])
         card_names = study['stats']['similarities']['card_names']
         similarity_matrix = []
         no = 0
         for line in study['stats']['similarities']['times_in_same_category']:
-            for i in range(1, len(line)):
-                line[i-1] = (line[i]/total_sorts) * 100
+            for i in range(0, len(line) - 1):
+                line[i] = ceil((line[i]/total_sorts) * 100)
 
             line[len(line) - 1] = card_names[no]
             similarity_matrix.append(line)
