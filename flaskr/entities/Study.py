@@ -18,10 +18,19 @@ class Study:
 
     def create_study(self, title, description, cards, message, user_id):
         date = datetime.datetime.utcnow()
+
+        # Remove undefined cards
+        sanitized_cards = cards.copy()
+        for card_id in cards:
+            try:
+                cards[card_id]['name']
+            except KeyError:
+                sanitized_cards.pop(card_id, None)
+
         study = {
             'title': title,
             'description': description,
-            'cards': cards,
+            'cards': sanitized_cards,
             'message': message,
             'abandonedNo': 0,
             'completedNo': 0,
