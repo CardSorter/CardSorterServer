@@ -92,7 +92,7 @@ class Study:
         except KeyError:
             return {
                 'participants': 0,
-                'shareUrl': Config.url + '?id=' + str(study['id'])
+                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
             }
 
         total = len(study['participants'])
@@ -101,7 +101,7 @@ class Study:
         if total == 0:
             return {
                 'participants': 0,
-                'shareUrl': Config.url + '?id=' + str(study['id'])
+                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
             }
 
         study['shareUrl'] = Config.url + '?id=' + str(study['id'])

@@ -55,7 +55,7 @@ class StudyResource(Resource):
             'isLive': True,
             'launchedDate': date,
             'url_to_study': Config.url + '/study/' + str(study.study_id),
-            'share_url': Config.url + '?id=' + str(study.study_id),
+            'share_url': Config.url + '/sort/' + '?id=' + str(study.study_id),
         }
 
         return jsonify(study=res)
