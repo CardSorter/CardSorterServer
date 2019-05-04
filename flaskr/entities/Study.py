@@ -58,7 +58,12 @@ class Study:
                 'completedNo': 1,
                 'editDate': 1,
                 'isLive': 1,
-                'launchedDate': 1}))[0]
+                'launchedDate': 1}))
+            if len(study) > 0:
+                study = study[0]
+            else:
+                print('Study not found:', study_id)
+                continue
             study['id'] = str(study['_id'])
             study['_id'] = None
             studies.append(study)
