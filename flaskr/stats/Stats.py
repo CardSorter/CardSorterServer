@@ -1,4 +1,7 @@
-from datetime import datetime
+from scipy.cluster import hierarchy
+import scipy.spatial.distance as ssd
+import numpy as np
+import matplotlib.pyplot as plt
 
 from bson import ObjectId
 from flask import current_app
@@ -152,6 +155,9 @@ def build_similarity_matrix(study_id):
         i += 1
 
     studies.update({'_id': ObjectId(study_id)}, {'$set': {
+        'stats.clusters': {},
+        'stats.clusters_changed': False,
+        'stats.clusters_calculating': False,
         'stats.similarities.card_names': card_names,
         'stats.similarities.times_in_same_category': times_in_same_category,
     }})
@@ -192,3 +198,94 @@ def update_similarity_matrix(study_id, new_participant_id):
     studies.update_one({'_id': ObjectId(study_id)}, {'$set': {
         'stats.similarities.times_in_same_category': times_in_same_category
     }})
+
+
+def calculate_clusters(study_id):
+    """
+    Calculates the clusters based on the average-linkage hierarchical clustering.
+    The calculation happens only if something has been changed from the previous calculation.
+    :param study_id:
+    :return: the clusters
+    """
+    with current_app.app_context():
+        studies = get_db()['studies']
+
+    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
+    if study['stats']['clusters_changed']:
+
+        if study['stats']['clusters_calculating']:
+            return {'message': 'calculating'}
+
+        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': True}})
+        distance = study['stats']['similarities']['times_in_same_category']
+        card_names = study['stats']['similarities']['card_names']
+        total_participants = len(study['participants'])
+
+        distance_matrix = calculate_square_form(distance, total_participants)
+        distArray = ssd.squareform(distance_matrix)
+
+        try:
+            clusters = hierarchy.linkage(distArray, method='average')
+        except ValueError:
+            return {'message': 'not enough data'}
+
+        tree = hierarchy.to_tree(clusters, rd=False)
+        dendro = dict(children=[])
+        add_node(tree, dendro, card_names)
+        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters': dendro}})
+        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': False}})
+
+        #
+        # fig = plt.figure(figsize=(25, 10))
+        # dn = hierarchy.dendrogram(clusters)
+        # plt.show()
+
+        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters_changed': False}})
+    else:
+        dendro = study['stats']['clusters']
+
+    return dendro
+
+
+def calculate_square_form(diagonal_matrix, total_sorts):
+    """
+    Takes a diagonal matrix converts it to it's full form
+    :param diagonal_matrix: a diagonal matrix
+    :param total_sorts
+    :return: the nxn redundant matrix
+    """
+    n = len(diagonal_matrix)
+
+    matrix = np.ndarray(shape=(n,n))
+
+    for i in range(n):
+        for j in range(len(diagonal_matrix[i])):
+            # Also calculate the dissimilarity matrix
+            matrix[i][j] = 100 - 100 * diagonal_matrix[i][j] / total_sorts
+            matrix[j][i] = 100 - 100 * diagonal_matrix[i][j] / total_sorts
+            if i == j:
+                matrix[i][j] = 0
+
+    return matrix
+
+
+def add_node(node, parent, card_names):
+    """
+    Create a nested dictionary from the ClusterNode's returned by SciPy
+    :param node:
+    :param parent:
+    :return:
+    """
+    # First create the new node and append it to its parent's children
+    newNode = dict(children=[])
+    # Append the name only if the node is a leaf
+    if node.id < len(card_names):
+        newNode.update(name=card_names[node.id])
+
+    parent["children"].append(newNode)
+
+    # Recursively add the current node's children
+    if node.left:
+        add_node(node.left, newNode, card_names)
+    if node.right:
+        add_node(node.right, newNode, card_names)

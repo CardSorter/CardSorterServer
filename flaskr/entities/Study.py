@@ -5,7 +5,7 @@ from flask import current_app
 from math import ceil
 
 from flaskr.db import get_db
-from flaskr.stats.Stats import build_similarity_matrix
+from flaskr.stats.Stats import build_similarity_matrix, calculate_clusters
 from flaskr.Config import Config
 
 
@@ -204,6 +204,15 @@ class Study:
     def get_thanks_message(self, study_id):
         message = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0]
         return message
+
+    def get_clusters(self, study_id, user_id):
+        # Check if the study belongs to the user
+        available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
+
+        if ObjectId(study_id) not in available_studies:
+            return {'message': 'INVALID STUDY'}
+
+        return calculate_clusters(study_id)
 
     def _post_study(self, study):
         item = self.studies.insert_one(study)

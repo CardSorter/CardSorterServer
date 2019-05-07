@@ -23,8 +23,14 @@ class StudyResource(Resource):
 
         # Load specific study
         if request.args.get('id'):
+            # Load the clusters of a study
+            if request.args.get('clusters'):
+                return jsonify(clusters=
+                               study.get_clusters((request.args.get('id')), user_id))
+
             return jsonify(study=
                            study.get_study((request.args.get('id')), user_id))
+
 
         # Load all studies
         return jsonify(studies=study.get_studies(user_id))

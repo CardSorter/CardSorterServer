@@ -2,7 +2,7 @@ from bson import ObjectId
 from flask import current_app, jsonify
 
 from flaskr.db import get_db
-from flaskr.stats.Stats import update_card_stats, update_categories_stats, update_similarity_matrix
+from flaskr.stats.Stats import update_card_stats, update_categories_stats, update_similarity_matrix, calculate_clusters
 
 
 class Participant:
@@ -47,6 +47,9 @@ class Participant:
         else:
             abandoned = list(self.studies.find({'_id': ObjectId(study_id)}, {'abandonedNo': 1}))[0]['abandonedNo']
             self.studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'abandonedNo': abandoned + 1}})
+
+        # Clusters have been changed
+        self.studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters_changed': True}})
 
         update_card_stats(study_id, str(self.participant_id))
         update_categories_stats(study_id, str(self.participant_id))
