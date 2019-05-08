@@ -1,7 +1,6 @@
 from scipy.cluster import hierarchy
 import scipy.spatial.distance as ssd
 import numpy as np
-import matplotlib.pyplot as plt
 
 from bson import ObjectId
 from flask import current_app
@@ -230,7 +229,7 @@ def calculate_clusters(study_id):
             return {'message': 'not enough data'}
 
         tree = hierarchy.to_tree(clusters, rd=False)
-        dendro = dict(children=[])
+        dendro = dict(children=[], hierarchy=0)
         add_node(tree, dendro, card_names)
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters': dendro}})
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': False}})
@@ -277,12 +276,15 @@ def add_node(node, parent, card_names):
     :return:
     """
     # First create the new node and append it to its parent's children
-    newNode = dict(children=[])
+    newNode = dict(children=[], hierarchy=1, distance=node.dist)
     # Append the name only if the node is a leaf
     if node.id < len(card_names):
         newNode.update(name=card_names[node.id])
 
-    parent["children"].append(newNode)
+    parent['children'].append(newNode)
+
+    for child in parent['children']:
+        parent['hierarchy'] += child['hierarchy']
 
     # Recursively add the current node's children
     if node.left:
