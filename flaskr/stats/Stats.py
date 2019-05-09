@@ -234,11 +234,6 @@ def calculate_clusters(study_id):
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters': dendro}})
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': False}})
 
-        #
-        # fig = plt.figure(figsize=(25, 10))
-        # dn = hierarchy.dendrogram(clusters)
-        # plt.show()
-
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters_changed': False}})
     else:
         dendro = study['stats']['clusters']
