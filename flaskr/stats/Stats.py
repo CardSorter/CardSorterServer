@@ -229,7 +229,9 @@ def calculate_clusters(study_id):
             return {'message': 'not enough data'}
 
         tree = hierarchy.to_tree(clusters, rd=False)
-        dendro = dict(children=[], hierarchy=0)
+        # TODO Distance 0 on root
+        dendro = dict(children=[], hierarchy=0, distance=100)
+        print(dendro)
         add_node(tree, dendro, card_names)
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters': dendro}})
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': False}})
@@ -268,21 +270,23 @@ def add_node(node, parent, card_names):
     Create a nested dictionary from the ClusterNode's returned by SciPy
     :param node:
     :param parent:
+    :param card_names
     :return:
     """
     # First create the new node and append it to its parent's children
-    newNode = dict(children=[], hierarchy=1, distance=node.dist)
+    new_node = dict(children=[], hierarchy=1, distance=node.dist)
     # Append the name only if the node is a leaf
     if node.id < len(card_names):
-        newNode.update(name=card_names[node.id])
+        new_node.update(name=card_names[node.id])
 
-    parent['children'].append(newNode)
+    parent['children'].append(new_node)
 
     for child in parent['children']:
-        parent['hierarchy'] += child['hierarchy']
+        if child['hierarchy'] >= parent['hierarchy']:
+            parent['hierarchy'] = child['hierarchy'] + 1
 
     # Recursively add the current node's children
     if node.left:
-        add_node(node.left, newNode, card_names)
+        add_node(node.left, new_node, card_names)
     if node.right:
-        add_node(node.right, newNode, card_names)
+        add_node(node.right, new_node, card_names)

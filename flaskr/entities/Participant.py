@@ -12,7 +12,7 @@ class Participant:
             self.participants = get_db()['participants']
         self.participant_id = 0
 
-    def post_categorization(self, study_id, categories, non_sorted):
+    def post_categorization(self, study_id, categories, non_sorted, time):
         study = list(self.studies.find({'_id': ObjectId(study_id)}))
 
         if len(study) == 0:
@@ -33,6 +33,7 @@ class Participant:
             'not_sorted': non_sorted,
             'cards_sorted': cards_sorted,
             'categories_no': categories_no,
+            'time': time,
         })
 
         self.participant_id = ObjectId(item.inserted_id)

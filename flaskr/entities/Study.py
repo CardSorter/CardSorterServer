@@ -90,8 +90,14 @@ class Study:
         try:
             for participant_id in study['participants']:
                 participant = list(self.participants.find({'_id': participant_id},
-                                                          {'_id': 0, 'cards_sorted': 1, 'categories_no': 1}))[0]
-                participants.append(['#' + str(no), 'N/A', str(participant['cards_sorted']) + '%'
+                                                          {'_id': 0}))[0]
+                try:
+                    time = participant['time']
+                    print(time)
+                except KeyError:
+                    time = 'N/A'
+
+                participants.append(['#' + str(no), time, str(participant['cards_sorted']) + '%'
                                     , participant['categories_no']])
                 no += 1
         except KeyError:
@@ -112,11 +118,10 @@ class Study:
         study['shareUrl'] = Config.url + '?id=' + str(study['id'])
 
         completed = len(list(self.participants.find({'cards_sorted': 100})))
-
         study['participants'] = {
             'completion': study['stats']['completion'],
             'total': total,
-            'completed': completed,
+            'completed': study['completedNo'],
             'data': participants
         }
 

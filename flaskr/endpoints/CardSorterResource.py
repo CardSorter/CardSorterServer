@@ -18,7 +18,6 @@ class CardSorterResource(Resource):
             study = Study()
             cards = study.get_cards(study_id)
 
-            print(cards)
             if isinstance(cards, dict) and cards['message']:
                 return make_response(jsonify(error=cards), 404)
 
@@ -28,10 +27,14 @@ class CardSorterResource(Resource):
         study_id = request.json['studyID']
         categories = request.json['categories']
         non_sorted = request.json['container']
+        try:
+            time = convert_to_date(request.json['time'])
+        except KeyError:
+            time = 'N/A'
 
         participant = Participant()
 
-        error = participant.post_categorization(study_id, categories, non_sorted)
+        error = participant.post_categorization(study_id, categories, non_sorted, time)
 
         if error:
             return jsonify(error=error)
@@ -48,3 +51,21 @@ def get_id(req):
     if not req.args.get('study_id') or len(req.args.get('study_id')) == 0 or req.args.get('study_id') == 'null':
         return {'error': 404}
     return req.args.get('study_id')
+
+
+def convert_to_date(ms):
+    millis = ms
+    seconds = (millis / 1000) % 60
+    seconds = int(seconds)
+    minutes = (millis / (1000 * 60)) % 60
+    minutes = int(minutes)
+    hours = (millis / (1000 * 60 * 60)) % 24
+    hours = int(hours)
+
+    time = ''
+    if hours > 0:
+        time += str(hours) + ' h '
+    if minutes > 0:
+        time += str(minutes) + ' m '
+    time += str(seconds) + ' s'
+    return time
