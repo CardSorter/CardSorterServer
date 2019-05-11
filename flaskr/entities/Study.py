@@ -93,7 +93,6 @@ class Study:
                                                           {'_id': 0}))[0]
                 try:
                     time = participant['time']
-                    print(time)
                 except KeyError:
                     time = 'N/A'
 
