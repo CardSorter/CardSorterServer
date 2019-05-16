@@ -9,7 +9,6 @@ from flaskr.stats.Stats import update_stats
 class CardSorterResource(Resource):
 
     def get(self):
-
         study_id = get_id(request)
         if isinstance(study_id, dict) and study_id['error']:
             return make_response(jsonify(error={'message': 'STUDY NOT FOUND'}), 404)
@@ -32,9 +31,14 @@ class CardSorterResource(Resource):
         except KeyError:
             time = 'N/A'
 
+        try:
+            comment = request.json['comment']
+        except KeyError:
+            comment = ''
+
         participant = Participant()
 
-        error = participant.post_categorization(study_id, categories, non_sorted, time)
+        error = participant.post_categorization(study_id, categories, non_sorted, time, comment)
 
         if error:
             return jsonify(error=error)
