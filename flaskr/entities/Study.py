@@ -101,6 +101,9 @@ class Study:
                 no += 1
         except KeyError:
             return {
+                'title': study['title'],
+                'isLive': study['isLive'],
+                'launchedDate': study['launchedDate'],
                 'participants': 0,
                 'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
             }
@@ -110,6 +113,9 @@ class Study:
         # Return no participants json
         if total == 0:
             return {
+                'title': study['title'],
+                'isLive': study['isLive'],
+                'launchedDate': study['launchedDate'],
                 'participants': 0,
                 'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
             }

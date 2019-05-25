@@ -31,7 +31,6 @@ class StudyResource(Resource):
             return jsonify(study=
                            study.get_study((request.args.get('id')), user_id))
 
-
         # Load all studies
         return jsonify(studies=study.get_studies(user_id))
 
