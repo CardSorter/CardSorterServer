@@ -58,7 +58,8 @@ class Study:
                 'completedNo': 1,
                 'editDate': 1,
                 'isLive': 1,
-                'launchedDate': 1}))
+                'launchedDate': 1,
+                'endDate': 1}))
             if len(study) > 0:
                 study = study[0]
             else:
@@ -122,7 +123,6 @@ class Study:
 
         study['shareUrl'] = Config.url + '?id=' + str(study['id'])
 
-        completed = len(list(self.participants.find({'cards_sorted': 100})))
         study['participants'] = {
             'completion': study['stats']['completion'],
             'total': total,
@@ -150,7 +150,7 @@ class Study:
 
         study['cards'] = {
             'average': str(study['stats']['average_sort']) + '%',
-            'total': total,
+            'total': len(study['cards']),
             'sorted': int(total * study['stats']['average_sort'] * (1 / 100)),
             'data': cards,
         }
