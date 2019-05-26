@@ -2,6 +2,8 @@ import os
 
 from flask import Flask, g
 from flask_cors import CORS
+from flaskr.db import get_db
+
 
 from flaskr.InitializeEndpoints import InitializeEndpoints
 

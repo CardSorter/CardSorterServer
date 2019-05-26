@@ -200,9 +200,9 @@ class Study:
         return similarity_matrix
 
     def get_cards(self, study_id):
-        study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1}))
+        study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1, 'isLive': 1}))
 
-        if len(study) == 0:
+        if len(study) == 0 or not study[0]['isLive']:
             return {'message': 'STUDY NOT FOUND'}
         study = study[0]
 
