@@ -121,7 +121,7 @@ class Study:
                 'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
             }
 
-        study['shareUrl'] = Config.url + '?id=' + str(study['id'])
+        study['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study['id'])
 
         study['participants'] = {
             'completion': study['stats']['completion'],
