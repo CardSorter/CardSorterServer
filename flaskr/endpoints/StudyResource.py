@@ -9,6 +9,28 @@ from flaskr.entities.User import User
 
 class StudyResource(Resource):
     def get(self):
+        """
+        Checks the authentication, returns the user details, returns all the studies, returns a specific study with full
+        details based on the id, returns the clusters of a study.
+        In *all cases*:
+            The authentication headers are used to identify the user.
+            If the authentication is unsuccessful the redirect location is returned.
+        In *get username*:
+            The parameter username is passed.
+            The username is returned.
+        In *get specific study*:
+            The id is passed as a parameter.
+            The study object is returned.
+        In *get cluster of study*:
+            The id is passed as a parameter.
+            The cluster parameter is set to true.
+            The cluster is returned.
+        In *get all studies*:
+            This is the default behaviour.
+            The studies that belong to the user are returned.
+            The studies don't include all information.
+        """
+
         # Check authentication
         auth_header = request.headers.get('Authorization')
         user_id = User.validate_request(auth_header)
@@ -35,6 +57,15 @@ class StudyResource(Resource):
         return jsonify(studies=study.get_studies(user_id))
 
     def post(self):
+        """
+        Creates a new study.
+        Default case:
+            The authentication headers are used to identify the user.
+            If the authentication is unsuccessful the redirect location is returned.
+            The study creation object is passed in the body of the request as a JSON.
+            The created resource (study) is returned.
+        """
+
         # Check authentication
         auth_header = request.headers.get('Authorization')
         user_id = User.validate_request(auth_header)
@@ -64,6 +95,3 @@ class StudyResource(Resource):
         }
 
         return jsonify(study=res)
-
-    def delete(self):
-        pass

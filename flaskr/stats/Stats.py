@@ -231,7 +231,7 @@ def calculate_clusters(study_id):
         tree = hierarchy.to_tree(clusters, rd=False)
         # TODO Distance 0 on root
         dendro = dict(children=[], hierarchy=0, distance=100)
-        print(dendro)
+
         add_node(tree, dendro, card_names)
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters': dendro}})
         studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': False}})

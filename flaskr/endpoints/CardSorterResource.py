@@ -7,8 +7,15 @@ from flaskr.stats.Stats import update_stats
 
 
 class CardSorterResource(Resource):
-
     def get(self):
+        """
+        Sends the details used for the card sort of a study.
+        There is one *error* that is returned:
+            -STUDY NOT FOUND
+        Default case:
+            The id must be passed as a parameter, the cards parameter must be true.
+            Returns the cards of the study.
+        """
         study_id = get_id(request)
         if isinstance(study_id, dict) and study_id['error']:
             return make_response(jsonify(error={'message': 'STUDY NOT FOUND'}), 404)
@@ -23,6 +30,14 @@ class CardSorterResource(Resource):
             return jsonify(cards=cards)
 
     def post(self):
+        """
+        Submits the sorting of a study.
+        There is one *error* that is returned:
+            -STUDY NOT FOUND
+        Default case:
+            The body of the request must consist of the fields: studyID, categories, container, time, comment.
+            The thanks message is returned.
+        """
         study_id = request.json['studyID']
         categories = request.json['categories']
         non_sorted = request.json['container']

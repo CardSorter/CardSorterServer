@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, g
+from flask import Flask
 from flask_cors import CORS
 from flaskr.db import get_db
 
@@ -8,9 +8,9 @@ from flaskr.db import get_db
 from flaskr.InitializeEndpoints import InitializeEndpoints
 
 # Configuration
-app = Flask(__name__, instance_relative_config=True, static_folder='./public/card_sorter/',
-            template_folder="./public/card_sorter/")
+app = Flask(__name__, instance_relative_config=True)
 app.config.from_mapping(
+    # change this on deployment only
     SECRET_KEY='development',
 )
 CORS(app, supports_credentials=True)

@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response, current_app
+from flask import request, jsonify, make_response
 from flask_restful import Resource
 
 from ..entities.User import User
@@ -6,13 +6,34 @@ from flaskr.Config import Config
 
 
 class UserResource(Resource):
-    def get(self):
-        pass
-
     def post(self):
+        """
+        Logins and registers the user.
+        In register:
+            The *request* body must contain the username, the password and the email.
+            There are five *errors* that are returned:
+                -DUPLICATE USERNAME
+                -EMPTY USERNAME
+                -DUPLICATE EMAIL
+                -EMPTY EMAIL
+                -EMPTY PASSWORD
+            The *response* body will contain the fields:
+                -location: the URL that the user will be redirected.
+                -auth_token: the token used for authenticating the user's identity.
+        In login:
+            The *request* body must contain the username and the password.
+            There are four *errors* that are returned:
+                -USERNAME NOT FOUND
+                -EMPTY USERNAME
+                -INVALID PASSWORD
+                -EMPTY PASSWORD
+            The *response* body will contain the fields:
+                -location: the URL that the user will be redirected.
+                -auth_token: the token used for authenticating the user's identity.
+        :return:
+        """
 
         if len(request.args) > 0 and request.args['register']:
-            # pass
             username = request.json.get('username')
             password = request.json.get('password')
             email = request.json.get('email')
@@ -42,6 +63,3 @@ class UserResource(Resource):
             }))
 
         return resp
-
-    def delete(self):
-        pass
