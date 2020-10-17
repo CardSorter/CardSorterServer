@@ -35,7 +35,7 @@ class StudyResource(Resource):
         auth_header = request.headers.get('Authorization')
         user_id = User.validate_request(auth_header)
         if not user_id or isinstance(user_id, dict):
-            return make_response(jsonify(location=Config.url+'/auth'), 401)
+            return make_response(jsonify(location=Config.url+'auth/'), 401)
 
         if request.args.get('username'):
             user = User()
@@ -71,7 +71,7 @@ class StudyResource(Resource):
         user_id = User.validate_request(auth_header)
 
         if not user_id or isinstance(user_id, dict):
-            return make_response(jsonify(location=Config.url+'/auth'), 401)
+            return make_response(jsonify(location=Config.url+'auth/'), 401)
 
         req = request.json
         study = Study()
@@ -90,8 +90,8 @@ class StudyResource(Resource):
             'editDate': date,
             'isLive': True,
             'launchedDate': date,
-            'url_to_study': Config.url + '/study/' + str(study.study_id),
-            'share_url': Config.url + '/sort/' + '?id=' + str(study.study_id),
+            'url_to_study': Config.url + 'study/' + str(study.study_id),
+            'share_url': Config.url + 'sort/' + '?id=' + str(study.study_id),
         }
 
         return jsonify(study=res)

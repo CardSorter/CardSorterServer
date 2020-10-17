@@ -39,6 +39,7 @@ class UserResource(Resource):
             email = request.json.get('email')
             user = User()
             error_msg = user.create_user(username, password, email)
+            print(user)
 
             if error_msg:
                 return jsonify(error=error_msg)
