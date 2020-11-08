@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.6.12
 
 ENV GROUP_ID=1000 \
     USER_ID=1000
