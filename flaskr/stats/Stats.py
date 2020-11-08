@@ -51,7 +51,11 @@ def update_card_stats(study_id, new_participant_id):
                                    {'$set': {'cards.' + str(card_id) + '.frequencies': []}})
 
             # Check if the category already exists
-            category_name = participant['categories'][category_id]['title']
+            try:
+                category_name = participant['categories'][category_id]['title']
+            except KeyError:
+                category_name = 'not set'
+
             try:
                 categories = study['cards'][str(card_id)]['categories']
             except KeyError:
@@ -89,7 +93,10 @@ def update_categories_stats(study_id, new_participant_id):
     participant = list(participants.find({'_id': ObjectId(new_participant_id)}))[0]
     study = list(studies.find({'_id': ObjectId(study_id)}))[0]
     for category_id in participant['categories']:
-        category_name = participant['categories'][category_id]['title']
+        try:
+            category_name = participant['categories'][category_id]['title']
+        except KeyError:
+            category_name = 'not set'
 
         try:
             study_categories = list(studies.find({'_id': ObjectId(study_id)}, {'categories': 1}))[0]['categories']

@@ -59,6 +59,7 @@ class CardSorterResource(Resource):
             return jsonify(error=error)
 
         study = Study()
+        print('Updating stats for: ', study_id)
         update_stats(study_id)
         return jsonify(study.get_thanks_message(study_id))
 
