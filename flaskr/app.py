@@ -32,4 +32,5 @@ InitializeEndpoints(application)
 if __name__ == '__main__':
     ENVIRONMENT_DEBUG = os.environ.get("APP_DEBUG", True)
     ENVIRONMENT_PORT = os.environ.get("APP_PORT", 5000)
-    application.run(host='0.0.0.0', port=ENVIRONMENT_PORT, debug=ENVIRONMENT_DEBUG)
+    ENVIRONMENT_HOST = os.environ.get("APP_HOST", '127.0.0.1')
+    application.run(host=ENVIRONMENT_HOST, port=ENVIRONMENT_PORT, debug=ENVIRONMENT_DEBUG)
