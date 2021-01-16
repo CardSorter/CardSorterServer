@@ -6,24 +6,41 @@ from passlib.apps import custom_app_context as pwd_context
 
 from ..db import get_db
 
+from ..db import conn, cur
 
 class User:
     def __init__(self):
-        with current_app.app_context():
-            self.db = get_db()['users']
+        # with current_app.app_context():
+        #     self.db = get_db()['users']
+        with cur.execute("""SELECT * FROM USERTABLE""") as selection:
+            self.db = selection.fetchall()
         self.password_hash = 0
         self.auth_token = 0
 
     def create_user(self, username, password, email):
+        # if username:
+        #     if len(list(self.db.find({'username': username}))) > 0:
+        #         return {'message': 'DUPLICATE USERNAME'}
+        # else:
+        #     return {'message': 'EMPTY USERNAME'}
+
         if username:
-            if len(list(self.db.find({'username': username}))) > 0:
-                return {'message': 'DUPLICATE USERNAME'}
+            with cur.execute("""SELECT USERNAME FROM USERTABLE WHERE USERNAME = {0}""".format(username)) as selection:
+                if selection:
+                    return {'message': 'DUPLICATE USERNAME'}
         else:
             return {'message': 'EMPTY USERNAME'}
 
+        # if email:
+        #     if len(list(self.db.find({'email': email}))) > 0:
+        #         return {'message': 'DUPLICATE EMAIL'}
+        # else:
+        #     return {'message': 'EMPTY EMAIL'}
+
         if email:
-            if len(list(self.db.find({'email': email}))) > 0:
-                return {'message': 'DUPLICATE EMAIL'}
+            with cur.execute("""SELECT EMAIL FROM USERTABLE WHERE EMAIL = {0}""".format(email)) as selection:
+                if selection:
+                    return {'message': 'DUPLICATE EMAIL'}
         else:
             return {'message': 'EMPTY EMAIL'}
 
@@ -32,12 +49,16 @@ class User:
         else:
             return {'message': 'EMPTY PASSWORD'}
 
-        user = self.db.insert_one({
-            'username': username,
-            'password': self.password_hash,
-            'email': email,
-            'studies': [],
-        })
+        # user = self.db.insert_one({
+        #     'username': username,
+        #     'password': self.password_hash,
+        #     'email': email,
+        #     'studies': [],
+        # })
+
+        user = cur.execute("INSERT INTO USERTABLE (USERNAME, PASSWORD, EMAIL, STUDIES) "
+                    "VALUES ({0}, {1}, {2}, {3} RETURNING id)".format(username, password, email, []))
+
 
         self.auth_token = User._encode_auth_token(str(user.inserted_id))
         return None
