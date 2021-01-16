@@ -25,3 +25,24 @@ services:
         ME_CONFIG_MONGODB_ADMINPASSWORD: "password"
       depends_on:
         - mongo
+    card_sorter_postgres:
+      image: postgres
+      restart: "no"
+      ports:
+        - 5432:5432
+      env_file:
+        - db_init.env
+      volumes:
+        - db_data:/var/lib/postgres/data
+
+    card_sorter_adminer:
+      image: adminer
+      restart: "no"
+      ports:
+        - 8080:8080
+      depends_on:
+        - card_sorter_postgres
+
+
+volumes:
+  db_data:

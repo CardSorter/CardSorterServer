@@ -1,0 +1,1 @@
+cat create_tables.sql | docker exec -i server_card_sorter_postgres_1 psql -U rest_api --dbname=card_sorter
