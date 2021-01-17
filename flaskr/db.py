@@ -27,5 +27,5 @@ def get_db():
 
 '''mc'''
 import psycopg2
-conn = psycopg2.connect("dbname=test user=postgres")
-cur = conn.cursor()
+conn = psycopg2.connect("dbname=card_sorter user=rest_api password=password")
+
