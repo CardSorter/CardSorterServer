@@ -7,7 +7,7 @@ from math import ceil
 from flaskr.db import get_db
 from flaskr.stats.Stats import build_similarity_matrix, calculate_clusters
 from flaskr.Config import Config
-
+from ..db import conn
 
 class Study:
     def __init__(self):
@@ -16,8 +16,23 @@ class Study:
             self.studies = get_db()['studies']
             self.participants = get_db()['participants']
         self.study_id = 0
+        with current_app.app_context():
+            self.cur = conn.cursor()
 
     def create_study(self, title, description, cards, message, user_id):
+        """
+        :param title:
+        :param description:
+        :param cards: [{"name": str,
+                        "id": int,
+                        "description": str}]
+        :param message:
+        :param user_id:
+        :return:
+        """
+        if not isinstance(cards, dict):
+            return "Cards is not an array"
+
         date = datetime.datetime.utcnow()
 
         # Remove undefined cards
@@ -28,25 +43,24 @@ class Study:
             except KeyError:
                 sanitized_cards.pop(card_id, None)
 
-        study = {
-            'title': title,
-            'description': description,
-            'cards': sanitized_cards,
-            'message': message,
-            'abandonedNo': 0,
-            'completedNo': 0,
-            'editDate': date,
-            'isLive': True,
-            'launchedDate': date,
-            'participants': [],
-        }
-        self._post_study(study)
 
-        # Create the appropriate fields
-        build_similarity_matrix(str(self.study_id))
+        self.cur.execute("""INSERT INTO STUDY (TITLE, DESCRIPTION, MESSAGE_TEXT, ABANDONED_NO,
+                            COMPLETED_NO, EDIT_DATE, IS_LIVE, LAUNCHED_DATE, USER_ID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            RETURNING id;""",
+                         (title, description, message, 0, 0, date, True, date, user_id))
+        study_id = self.cur.fetchone()[0]
+        for ca in sanitized_cards:
+            self.cur.execute("""INSERT INTO CARDS (STUDY_ID, CARD_NAME, DESCRIPTION) VALUES (%s, %s ,%s)""",
+                             (study_id, sanitized_cards[ca]["name"], sanitized_cards[ca]["description"]))
+        conn.commit()
 
-        # Link study to the user
-        self.users.update_one({'_id': ObjectId(user_id)}, {'$push': {'studies': self.study_id}})
+
+
+        # # Create the appropriate fields
+        # build_similarity_matrix(str(self.study_id))
+        #
+        # # Link study to the user
+        # self.users.update_one({'_id': ObjectId(user_id)}, {'$push': {'studies': self.study_id}})
 
     def get_studies(self, user_id):
         study_ids = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
@@ -223,7 +237,3 @@ class Study:
             return {'message': 'INVALID STUDY'}
 
         return calculate_clusters(study_id)
-
-    def _post_study(self, study):
-        item = self.studies.insert_one(study)
-        self.study_id = ObjectId(item.inserted_id)

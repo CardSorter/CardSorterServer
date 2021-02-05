@@ -3,7 +3,7 @@ from flask import current_app, jsonify
 
 from flaskr.db import get_db
 from flaskr.stats.Stats import update_card_stats, update_categories_stats, update_similarity_matrix, calculate_clusters
-
+from ..db import conn
 
 class Participant:
     def __init__(self):
@@ -11,6 +11,8 @@ class Participant:
             self.studies = get_db()['studies']
             self.participants = get_db()['participants']
         self.participant_id = 0
+        with current_app.app_context():
+            self.cur = conn.cursor()
 
     def post_categorization(self, study_id, categories, non_sorted, time, comment):
         study = list(self.studies.find({'_id': ObjectId(study_id)}))

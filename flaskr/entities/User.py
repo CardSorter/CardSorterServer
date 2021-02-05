@@ -1,17 +1,12 @@
 import datetime
 import jwt
-from bson import ObjectId
 from flask import current_app
 from passlib.apps import custom_app_context as pwd_context
-
-from ..db import get_db
 
 from ..db import conn
 
 class User:
     def __init__(self):
-        with current_app.app_context():
-            self.db = get_db()['users']
         self.password_hash = 0
         self.auth_token = 0
         with current_app.app_context():
@@ -20,14 +15,14 @@ class User:
     def create_user(self, username, password, email):
 
         if username:
-            self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE USERNAME = '{0}';""".format(username))
+            self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE USERNAME = %s;""", (username,))
             if self.cur.fetchall():
                 return {'message': 'DUPLICATE USERNAME'}
         else:
             return {'message': 'EMPTY USERNAME'}
 
         if email:
-            self.cur.execute("""SELECT EMAIL FROM USER_TABLE WHERE EMAIL = '{0}';""".format(email))
+            self.cur.execute("""SELECT EMAIL FROM USER_TABLE WHERE EMAIL = %s;""", (email,))
             if self.cur.fetchall():
                 return {'message': 'DUPLICATE EMAIL'}
         else:
@@ -38,35 +33,37 @@ class User:
         else:
             return {'message': 'EMPTY PASSWORD'}
 
+        self.cur.execute("INSERT INTO USER_TABLE (USERNAME, PASS, EMAIL) "
+                         "VALUES (%s, %s, %s) RETURNING id;",
+                         (username, self.password_hash, email,))
+        conn.commit()
 
-        self.cur.execute("INSERT INTO USER_TABLE (USERNAME, PASS, EMAIL)"
-                         " VALUES ('{0}', '{1}', '{2}') RETURNING id;".format(username, password, email))
         user = self.cur.fetchone()[0]
-
         self.auth_token = User._encode_auth_token(str(user))
         return None
 
     def verify_user(self, username, password):
         if username:
-            self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE USERNAME = '{0}';""".format(username))
+            self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE USERNAME = %s;""", (username,))
             if not self.cur.fetchall():
                 return {'message': 'USERNAME NOT FOUND'}
         else:
             return {'message': 'EMPTY USERNAME'}
 
         if password:
-            user = list(self.db.find({'username': username}, {'password': 1}))[0]
-            self.password_hash = user['password']
+            self.cur.execute("""SELECT ID, PASS FROM USER_TABLE WHERE USERNAME = %s;""", (username,))
+            _id, _pass = self.cur.fetchone()
+            self.password_hash = str(_pass)
             if self._verify_password(password):
-                self.auth_token = User._encode_auth_token(str(user['_id']))
+                self.auth_token = User._encode_auth_token(str(_id))
             else:
                 return {'message': 'INVALID PASSWORD'}
-
         else:
             return {'message': 'EMPTY PASSWORD'}
 
     def get_username(self, user_id):
-        return list(self.db.find({'_id': ObjectId(user_id)}))[0]['username']
+        self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE ID = %s""", (user_id,))
+        return self.cur.fetchone()
 
     @staticmethod
     def validate_request(auth_token):
