@@ -54,93 +54,100 @@ class Study:
                              (study_id, sanitized_cards[ca]["name"], sanitized_cards[ca]["description"]))
         conn.commit()
 
+        # Create the appropriate fields
+        build_similarity_matrix(str(study_id))
 
-
-        # # Create the appropriate fields
-        # build_similarity_matrix(str(self.study_id))
-        #
-        # # Link study to the user
-        # self.users.update_one({'_id': ObjectId(user_id)}, {'$push': {'studies': self.study_id}})
 
     def get_studies(self, user_id):
-        study_ids = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
-        studies = []
-        for study_id in study_ids:
-            study = list(self.studies.find({'_id': ObjectId(study_id)}, {
-                'title': 1,
-                'abandonedNo': 1,
-                'completedNo': 1,
-                'editDate': 1,
-                'isLive': 1,
-                'launchedDate': 1,
-                'endDate': 1}))
-            if len(study) > 0:
-                study = study[0]
-            else:
-                print('Study not found:', study_id)
-                continue
-            study['id'] = str(study['_id'])
-            study['_id'] = None
-            studies.append(study)
+        self.cur.execute("""SELECT ID, TITLE, ABANDONED_NO, COMPLETED_NO, EDIT_DATE, IS_LIVE, LAUNCHED_DATE, END_DATE
+                            FROM STUDY WHERE USER_ID=%s""", (str(user_id),))
+        studies = self.cur.fetchall()
         return studies
 
     def get_study(self, study_id, user_id):
-        # Check if the study belongs to the user
-        available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
-
-        if ObjectId(study_id) not in available_studies:
+        self.cur.execute("""SELECT * FROM STUDY WHERE USER_ID=%s AND ID=%s""", (str(user_id), str(study_id),))
+        study = self.cur.fetchall()
+        full_json = {}
+        if not study:
             return {'message': 'INVALID STUDY'}
 
-        study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
-        study['id'] = str(study['_id'])
-        study['_id'] = None
+        study_id_that_needs_to_be_skipped = 0
+        for i in ["ID", "DESCRIPTION", "TITLE", "COMPLETED_NO", "ABANDONED_NO",
+                  "EDIT_DATE", "LAUNCHED_DATE", "END_DATE", "IS_LIVE", "MESSAGE_TEXT"]:
+            if study_id_that_needs_to_be_skipped != 1:
+                full_json[i] = study[study_id_that_needs_to_be_skipped]
+            study_id_that_needs_to_be_skipped += 1
+
+        # # Check if the study belongs to the user
+        # available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
+        #
+        # if ObjectId(study_id) not in available_studies:
+        #     return {'message': 'INVALID STUDY'}
+        #
+        # study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
+        # study['id'] = str(study['_id'])
+        # study['_id'] = None
 
         # Make full json structure
         # Calculate participants data
 
         # Make the json array specified
         # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
-        participants = []
+        self.cur.execute("""SELECT * FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
+        unfiltered_participants = self.cur.fetchall()
         no = 1
-        try:
-            for participant_id in study['participants']:
-                participant = list(self.participants.find({'_id': participant_id},
-                                                          {'_id': 0}))[0]
-                try:
-                    time = participant['time']
-                except KeyError:
-                    time = 'N/A'
+        participants = []
+        for participant in unfiltered_participants:
+            time = participant[3]
+            cards_sorted = participant[2]
+            categories_no = participant[4]
+            participants.append(['#' + str(no), time, str(cards_sorted) + '%', categories_no])
+            no += 1
+        total = len(participants)
 
-                participants.append(['#' + str(no), time, str(participant['cards_sorted']) + '%'
-                                    , participant['categories_no']])
-                no += 1
-        except KeyError:
-            return {
-                'title': study['title'],
-                'isLive': study['isLive'],
-                'launchedDate': study['launchedDate'],
-                'participants': 0,
-                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
-            }
-
-        total = len(study['participants'])
+        # participants = []
+        # no = 1
+        # try:
+        #     for participant_id in study['participants']:
+        #         participant = list(self.participants.find({'_id': participant_id},
+        #                                                   {'_id': 0}))[0]
+        #         try:
+        #             time = participant['time']
+        #         except KeyError:
+        #             time = 'N/A'
+        #
+        #         participants.append(['#' + str(no), time, str(participant['cards_sorted']) + '%'
+        #                             , participant['categories_no']])
+        #         no += 1
+        # except KeyError:
+        #     return {
+        #         'title': study['title'],
+        #         'isLive': study['isLive'],
+        #         'launchedDate': study['launchedDate'],
+        #         'participants': 0,
+        #         'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
+        #     }
+        # total = len(study['participants'])
 
         # Return no participants json
         if total == 0:
             return {
-                'title': study['title'],
-                'isLive': study['isLive'],
-                'launchedDate': study['launchedDate'],
+                'title': study[3],
+                'isLive': study[9],
+                'launchedDate': study[7],
                 'participants': 0,
-                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
+                'shareUrl': Config.url + '/sort/' + '?id=' + str(study_id)
             }
 
-        study['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study['id'])
+        full_json['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study_id)
 
-        study['participants'] = {
-            'completion': study['stats']['completion'],
+        self.cur.execute("""SELECT * FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
+        stats = self.cur.fetchall()
+
+        full_json['participants'] = {
+            'completion': stats[3],
             'total': total,
-            'completed': study['completedNo'],
+            'completed': study[4],
             'data': participants
         }
 
@@ -148,6 +155,13 @@ class Study:
 
         # Make the json array specified
         # data: 0: card_name 1: categories_no 2: categories names 3: frequency
+        self.cur.execute("""SELECT ID AS CARD_ID, CARD_NAME, CATEGORY_ID, FREQUENCY
+                            FROM CARDS
+                            LEFT JOIN CARDS_CATEGORIES
+                            ON CARDS.ID = CARDS_CATERGORIES.CARD_ID
+                            WHERE STUDY_ID=%s""", (str(study_id),))
+        AAA = self.cur.fetchall()
+        print(AAA)
         cards = []
         for card_id in study['cards']:
             card = study['cards'][card_id]

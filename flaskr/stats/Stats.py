@@ -7,7 +7,8 @@ from flask import current_app
 from pymongo.errors import WriteError
 
 from flaskr.db import get_db
-
+from ..db import conn
+import json
 
 def update_stats(study_id):
     with current_app.app_context():
@@ -143,30 +144,29 @@ def update_categories_stats(study_id, new_participant_id):
 def build_similarity_matrix(study_id):
     with current_app.app_context():
         studies = get_db()['studies']
+    with current_app.app_context():
+        cur = conn.cursor()
 
-    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
+    cur.execute("""SELECT CARD_NAME FROM CARDS WHERE STUDY_ID = %s""", (study_id,))
+    card_names = [j[0] for j in [i[0].split() for i in cur.fetchall()]]
 
     # Build the padding array
-    card_names = []
     times_in_same_category = []
     siblings = 1
     i = 0
-    for card in study['cards']:
-        card_name = study['cards'][card]['name']
-        card_names.append(card_name)
+
+    for c in range(len(card_names)):
         times_in_same_category.append([])
-        for j in range(0, siblings):
+        for j in range(siblings):
             times_in_same_category[i].append(0)
         siblings += 1
         i += 1
 
-    studies.update({'_id': ObjectId(study_id)}, {'$set': {
-        'stats.clusters': {},
-        'stats.clusters_changed': False,
-        'stats.clusters_calculating': False,
-        'stats.similarities.card_names': card_names,
-        'stats.similarities.times_in_same_category': times_in_same_category,
-    }})
+    similarmat = {'matrix': times_in_same_category}
+    cur.execute("""INSERT INTO STATS (STUDY_ID, AVERAGE_SORT, COMPLETION, CLUSTERS_CALCULATING, CLUSTERS_CHANGED,
+                                      CLUSTERS, SIMILARITY_MATRIX) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (study_id, 0, 0, False, False, json.dumps({}), json.dumps(similarmat)))
+    conn.commit()
 
 
 def update_similarity_matrix(study_id, new_participant_id):
