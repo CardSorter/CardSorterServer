@@ -34,121 +34,14 @@ def update_stats(study_id):
     studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.average_sort': average_sort}})
 
 
-def update_card_stats(study_id, new_participant_id):
-    with current_app.app_context():
-        studies = get_db()['studies']
-        participants = get_db()['participants']
-
-    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
-    participant = list(participants.find({'_id': ObjectId(new_participant_id)}))[0]
-
-    for category_id in participant['categories']:
-        for card_id in participant['categories'][category_id]['cards']:
-            # Check if the category has a frequencies array
-            try:
-                study['cards'][str(card_id)]['frequencies']
-            except KeyError:
-                studies.update_one({'_id': ObjectId(study_id)},
-                                   {'$set': {'cards.' + str(card_id) + '.frequencies': []}})
-
-            # Check if the category already exists
-            try:
-                category_name = participant['categories'][category_id]['title']
-            except KeyError:
-                category_name = 'not set'
-
-            try:
-                categories = study['cards'][str(card_id)]['categories']
-            except KeyError:
-                categories = {}
-
-            category_no = 0
-            found = False
-            for category in categories:
-                if category == category_name:
-                    found = True
-                    break
-                category_no += 1
-
-            if not found:
-                studies.update_one({'_id': ObjectId(study_id)}, {'$push': {'cards.' + str(card_id) + '.categories':
-                                                                           category_name}})
-            try:
-                studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {'cards.' + str(card_id) + '.frequencies.' +
-                                                                          str(category_no): 1}})
-            except WriteError:
-                studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'cards.' + str(card_id) + '.frequencies.' +
-                                                                          str(category_no): 1}})
-
-
-def update_categories_stats(study_id, new_participant_id):
-    """
-    Updates the statistic for the categories.
-    !Important: this method should be called after the updated card stats.
-    :return:
-    """
-    with current_app.app_context():
-        studies = get_db()['studies']
-        participants = get_db()['participants']
-
-    participant = list(participants.find({'_id': ObjectId(new_participant_id)}))[0]
-    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
-    for category_id in participant['categories']:
-        try:
-            category_name = participant['categories'][category_id]['title']
-        except KeyError:
-            category_name = 'not set'
-
-        try:
-            study_categories = list(studies.find({'_id': ObjectId(study_id)}, {'categories': 1}))[0]['categories']
-        except KeyError:
-            studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'categories': {}}})
-            study_categories = {}
-
-        # Create different not set categories
-        if category_name == 'not set':
-            unique = False
-            i = 0
-            while not unique:
-                name = 'not set #' + str(i)
-                if name not in study_categories:
-                    category_name = name
-                    unique = True
-                i += 1
-
-        categories_category = 'categories.' + str(category_name)
-        for card_id in participant['categories'][category_id]['cards']:
-            card_name = study['cards'][str(card_id)]['name']
-
-            found = False
-            card_no = 0
-            try:
-                for study_card in study_categories[category_name]['cards']:
-                    if card_name == study_card:
-                        found = True
-                        break
-                    card_no += 1
-            except KeyError:
-                found = False
-
-            if not found:
-                studies.update_one({'_id': ObjectId(study_id)}, {'$push': {categories_category + '.cards': card_name}})
-                studies.update_one({'_id': ObjectId(study_id)}, {'$push': {categories_category + '.frequencies': 1}})
-            else:
-                studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.frequencies.'
-                                                                          + str(card_no): 1}})
-
-        studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.participants': 1}})
-
-
 def build_similarity_matrix(study_id):
-    with current_app.app_context():
-        studies = get_db()['studies']
     with current_app.app_context():
         cur = conn.cursor()
 
-    cur.execute("""SELECT CARD_NAME FROM CARDS WHERE STUDY_ID = %s""", (study_id,))
-    card_names = [j[0] for j in [i[0].split() for i in cur.fetchall()]]
+    cur.execute("""SELECT CARD_NAME, ID FROM CARDS WHERE STUDY_ID = %s""", (study_id,))
+    _ = cur.fetchall()
+    card_names = [i[0].strip() for i in _]
+    card_ids = [i[1] for i in _]
 
     # Build the padding array
     times_in_same_category = []
@@ -162,48 +55,12 @@ def build_similarity_matrix(study_id):
         siblings += 1
         i += 1
 
-    similarmat = {'matrix': times_in_same_category}
+    similarmat = {'matrix': times_in_same_category, 'cardNames': card_names, 'cardId': card_ids}
     cur.execute("""INSERT INTO STATS (STUDY_ID, AVERAGE_SORT, COMPLETION, CLUSTERS_CALCULATING, CLUSTERS_CHANGED,
                                       CLUSTERS, SIMILARITY_MATRIX) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
                 (study_id, 0, 0, False, False, json.dumps({}), json.dumps(similarmat)))
     conn.commit()
 
-
-def update_similarity_matrix(study_id, new_participant_id):
-    with current_app.app_context():
-        studies = get_db()['studies']
-        participants = get_db()['participants']
-
-    participant = list(participants.find({'_id': ObjectId(new_participant_id)}))[0]
-    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
-
-    card_names = study['stats']['similarities']['card_names']
-    times_in_same_category = study['stats']['similarities']['times_in_same_category']
-    all_cards = study['cards']
-
-    for category_name in participant['categories']:
-        category = participant['categories'][category_name]
-        cards = category['cards']
-
-        for card_id in cards:
-            # Get the name corresponding to the id
-            card_name = all_cards[str(card_id)]['name']
-            index = card_names.index(str(card_name))
-
-            for card2_id in cards:
-                # Get the name corresponding to the id
-                card2_name = all_cards[str(card2_id)]['name']
-                index2 = card_names.index(str(card2_name))
-
-                # Calculate only the left triangle
-                if index < index2:
-                    break
-
-                times_in_same_category[index][index2] += 1
-
-    studies.update_one({'_id': ObjectId(study_id)}, {'$set': {
-        'stats.similarities.times_in_same_category': times_in_same_category
-    }})
 
 
 def calculate_clusters(study_id):
@@ -268,6 +125,11 @@ def calculate_square_form(diagonal_matrix, total_sorts):
             matrix[j][i] = 100 - 100 * diagonal_matrix[i][j] / total_sorts
             if i == j:
                 matrix[i][j] = 0
+
+    # matrix = np.tril(diagonal_matrix, k=-1)
+    # matrix = matrix + matrix.T
+    # matrix = matrix * (-100 / total_sorts) + 100
+    # np.fill_diagonal(matrix, 0)
 
     return matrix
 

@@ -48,14 +48,14 @@ class Study:
                             COMPLETED_NO, EDIT_DATE, IS_LIVE, LAUNCHED_DATE, USER_ID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                             RETURNING id;""",
                          (title, description, message, 0, 0, date, True, date, user_id))
-        study_id = self.cur.fetchone()[0]
+        self.study_id = self.cur.fetchone()[0]
         for ca in sanitized_cards:
             self.cur.execute("""INSERT INTO CARDS (STUDY_ID, CARD_NAME, DESCRIPTION) VALUES (%s, %s ,%s)""",
-                             (study_id, sanitized_cards[ca]["name"], sanitized_cards[ca]["description"]))
+                             (self.study_id, sanitized_cards[ca]["name"], sanitized_cards[ca]["description"]))
         conn.commit()
 
         # Create the appropriate fields
-        build_similarity_matrix(str(study_id))
+        build_similarity_matrix(str(self.study_id))
 
 
     def get_studies(self, user_id):
@@ -66,17 +66,22 @@ class Study:
 
     def get_study(self, study_id, user_id):
         self.cur.execute("""SELECT * FROM STUDY WHERE USER_ID=%s AND ID=%s""", (str(user_id), str(study_id),))
-        study = self.cur.fetchall()
+        study = self.cur.fetchone()
         full_json = {}
         if not study:
             return {'message': 'INVALID STUDY'}
 
-        study_id_that_needs_to_be_skipped = 0
-        for i in ["ID", "DESCRIPTION", "TITLE", "COMPLETED_NO", "ABANDONED_NO",
-                  "EDIT_DATE", "LAUNCHED_DATE", "END_DATE", "IS_LIVE", "MESSAGE_TEXT"]:
-            if study_id_that_needs_to_be_skipped != 1:
-                full_json[i] = study[study_id_that_needs_to_be_skipped]
-            study_id_that_needs_to_be_skipped += 1
+        full_json = {
+            "id": study[0],
+            "title": study[2],
+            "completed_no": study[3],
+            "abandoned_no": study[4],
+            "edit_date": study[5],
+            "launched_date": study[6],
+            "end_date": study[7],
+            "is_live": study[8],
+            "message_text": study[9]
+        }
 
         # # Check if the study belongs to the user
         # available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
@@ -142,7 +147,7 @@ class Study:
         full_json['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study_id)
 
         self.cur.execute("""SELECT * FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
-        stats = self.cur.fetchall()
+        stats = self.cur.fetchone()
 
         full_json['participants'] = {
             'completion': stats[3],
@@ -155,13 +160,19 @@ class Study:
 
         # Make the json array specified
         # data: 0: card_name 1: categories_no 2: categories names 3: frequency
-        self.cur.execute("""SELECT ID AS CARD_ID, CARD_NAME, CATEGORY_ID, FREQUENCY
-                            FROM CARDS
-                            LEFT JOIN CARDS_CATEGORIES
-                            ON CARDS.ID = CARDS_CATERGORIES.CARD_ID
-                            WHERE STUDY_ID=%s""", (str(study_id),))
-        AAA = self.cur.fetchall()
-        print(AAA)
+        self.cur.execute("""SELECT C.ID, C.CARD_NAME, CA.ID, CA.CATEGORY_NAME, K.FREQUENCY
+                            FROM CARDS C LEFT JOIN CARDS_CATEGORIES K ON C.ID = K.CARD_ID
+                            LEFT JOIN CATEGORIES CA ON K.CATEGORY_ID = CA.ID
+                            WHERE C.STUDY_ID=%s""", (str(study_id),))
+        cards_cats = self.cur.fetchall()
+        self.cur.execute("""SELECT C.ID, C.CARD_NAME, COUNT(CA.ID)
+                            FROM CARDS C LEFT JOIN CARDS_CATEGORIES K ON C.ID = K.CARD_ID
+                            LEFT JOIN CATEGORIES CA ON K.CATEGORY_ID = CA.ID
+                            WHERE C.STUDY_ID=%s
+                            GROUP BY C.ID""", (str(study_id),))
+        cats_no = self.cur.fetchone()[0]
+        print(cards_cats, cats_no)
+
         cards = []
         for card_id in study['cards']:
             card = study['cards'][card_id]
@@ -228,16 +239,25 @@ class Study:
         return similarity_matrix
 
     def get_cards(self, study_id):
-        study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1, 'isLive': 1}))
+        self.cur.execute("""SELECT IS_LIVE, CARD_NAME, C.DESCRIPTION, C.ID
+                             FROM STUDY S
+                             LEFT JOIN CARDS C
+                             ON S.ID = C.STUDY_ID
+                             WHERE S.ID=%s""", (str(study_id),))
+        study = self.cur.fetchall()
+        print(study)
 
-        if len(study) == 0 or not study[0]['isLive']:
+        if len(study) == 0 or not study[0][0]:
             return {'message': 'STUDY NOT FOUND'}
-        study = study[0]
 
-        cards = []
-        for card in study['cards'].values():
-            cards.append(card)
-        return cards
+        lod = []
+        for i in range(len(study)):
+            lod.append({
+                    'name': study[i][1].strip(),
+                    'description': study[i][2].strip(),
+                    'id': study[i][3],
+            })
+        return lod
 
     def get_thanks_message(self, study_id):
         message = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0]
