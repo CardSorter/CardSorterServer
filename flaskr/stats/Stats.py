@@ -1,11 +1,9 @@
 from scipy.cluster import hierarchy
 import scipy.spatial.distance as ssd
 import numpy as np
+from ..general import *
 
-from bson import ObjectId
 from flask import current_app
-
-from flaskr.db import get_db
 from ..db import conn
 import json
 
@@ -15,10 +13,10 @@ def update_stats(study_id):
 
     cur.execute("""SELECT (CAST(SUM(CASE WHEN CARDS_SORTED = 100 THEN 1 ELSE 0 END) AS FLOAT)/COUNT(*))*100 AS 
                    COMPLETION FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
-    completion = cur.fetchone()[0]
+    completion = fetchoneClean(cur)[0]
     cur.execute("""SELECT (CAST(SUM(CARDS_SORTED) AS FLOAT)/COUNT(*)) AS 
                    COMPLETION FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
-    average_sort = cur.fetchone()[0]
+    average_sort = fetchoneClean(cur)[0]
 
     cur.execute("""UPDATE STATS SET COMPLETION = %s WHERE STUDY_ID = %s""", (completion, str(study_id),))
     cur.execute("""UPDATE STATS SET AVERAGE_SORT = %s WHERE STUDY_ID = %s""", (average_sort, str(study_id),))
@@ -30,7 +28,7 @@ def build_similarity_matrix(study_id):
         cur = conn.cursor()
 
     cur.execute("""SELECT CARD_NAME, ID FROM CARDS WHERE STUDY_ID = %s""", (study_id,))
-    _ = cur.fetchall()
+    _ = fetchallClean(cur)
     card_names = [i[0].strip() for i in _]
     card_ids = [i[1] for i in _]
 
@@ -65,7 +63,7 @@ def calculate_clusters(study_id):
         cur = conn.cursor()
 
     cur.execute("""SELECT * FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
-    study = cur.fetchone()
+    study = fetchoneClean(cur)
     clusters_calculating = study[4]
     clusters_changed = study[5]
 
@@ -78,7 +76,7 @@ def calculate_clusters(study_id):
         distance = study[7]['matrix']
         card_names = study[7]['cardNames']
         cur.execute("""SELECT COUNT(ID) FROM PARTICIPANT WHERE STUDY_ID = %s""", (str(study_id),))
-        total_participants = cur.fetchone()[0]
+        total_participants = fetchoneClean(cur)[0]
 
         distance_matrix = calculate_square_form(distance, total_participants)
         distArray = ssd.squareform(distance_matrix)

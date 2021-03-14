@@ -3,6 +3,7 @@ import jwt
 from flask import current_app
 from passlib.apps import custom_app_context as pwd_context
 from ..db import conn
+from ..general import *
 
 class User:
     def __init__(self):
@@ -15,14 +16,14 @@ class User:
 
         if username:
             self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE USERNAME = %s;""", (username,))
-            if self.cur.fetchall():
+            if fetchallClean(self.cur):
                 return {'message': 'DUPLICATE USERNAME'}
         else:
             return {'message': 'EMPTY USERNAME'}
 
         if email:
             self.cur.execute("""SELECT EMAIL FROM USER_TABLE WHERE EMAIL = %s;""", (email,))
-            if self.cur.fetchall():
+            if fetchallClean(self.cur):
                 return {'message': 'DUPLICATE EMAIL'}
         else:
             return {'message': 'EMPTY EMAIL'}
@@ -37,21 +38,21 @@ class User:
                          (username, self.password_hash, email,))
         conn.commit()
 
-        user = self.cur.fetchone()[0]
+        user = fetchoneClean(self.cur)[0]
         self.auth_token = User._encode_auth_token(str(user))
         return None
 
     def verify_user(self, username, password):
         if username:
             self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE USERNAME = %s;""", (username,))
-            if not self.cur.fetchall():
+            if not fetchallClean(self.cur):
                 return {'message': 'USERNAME NOT FOUND'}
         else:
             return {'message': 'EMPTY USERNAME'}
 
         if password:
             self.cur.execute("""SELECT ID, PASS FROM USER_TABLE WHERE USERNAME = %s;""", (username,))
-            _id, _pass = self.cur.fetchone()
+            _id, _pass = fetchoneClean(self.cur)
             self.password_hash = str(_pass)
             if self._verify_password(password):
                 self.auth_token = User._encode_auth_token(str(_id))
@@ -62,7 +63,7 @@ class User:
 
     def get_username(self, user_id):
         self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE ID = %s""", (user_id,))
-        return self.cur.fetchone()[0].strip()
+        return fetchoneClean(self.cur)[0]
 
     @staticmethod
     def validate_request(auth_token):

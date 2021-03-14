@@ -8,7 +8,7 @@ from flaskr.Config import Config
 from ..db import conn
 from pandas import DataFrame
 from numpy import ndarray
-from ..general import fetchallClean
+from ..general import *
 
 class Study:
     def __init__(self):
@@ -45,7 +45,7 @@ class Study:
                             COMPLETED_NO, EDIT_DATE, IS_LIVE, LAUNCHED_DATE, USER_ID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                             RETURNING id;""",
                          (title, description, message, 0, 0, date, True, date, user_id))
-        self.study_id = self.cur.fetchone()[0]
+        self.study_id = fetchoneClean(self.cur)[0]
         for ca in sanitized_cards:
             self.cur.execute("""INSERT INTO CARDS (STUDY_ID, CARD_NAME, DESCRIPTION) VALUES (%s, %s ,%s)""",
                              (self.study_id, sanitized_cards[ca]["name"], sanitized_cards[ca]["description"]))
@@ -58,12 +58,12 @@ class Study:
     def get_studies(self, user_id):
         self.cur.execute("""SELECT ID, TITLE, ABANDONED_NO, COMPLETED_NO, EDIT_DATE, IS_LIVE, LAUNCHED_DATE, END_DATE
                             FROM STUDY WHERE USER_ID=%s""", (str(user_id),))
-        studies = self.cur.fetchall()
+        studies = fetchallClean(self.cur)
         return studies
 
     def get_study(self, study_id, user_id):
         self.cur.execute("""SELECT * FROM STUDY WHERE USER_ID=%s AND ID=%s""", (str(user_id), str(study_id),))
-        study = [i.strip() if isinstance(i, str) else i for i in self.cur.fetchone()]
+        study = [i.strip() if isinstance(i, str) else i for i in fetchoneClean(self.cur)]
         if not study:
             return {'message': 'INVALID STUDY'}
 
@@ -81,7 +81,7 @@ class Study:
         # Make the json array specified
         # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
         self.cur.execute("""SELECT * FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
-        unfiltered_participants = self.cur.fetchall()
+        unfiltered_participants = fetchallClean(self.cur)
         no = 1
         participants = []
         for participant in unfiltered_participants:
@@ -105,7 +105,7 @@ class Study:
         full_json['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study_id)
 
         self.cur.execute("""SELECT * FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
-        stats = self.cur.fetchone()
+        stats = fetchoneClean(self.cur)
 
         full_json['participants'] = {
             'completion': stats[3],
@@ -127,9 +127,9 @@ class Study:
         cards = cont.groupby(['card_name']).agg({'cat_name': ['count', list], 'freq': list}).reset_index().values.tolist()
 
         self.cur.execute("""SELECT AVERAGE_SORT FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
-        average_sort = self.cur.fetchone()[0]
+        average_sort = fetchoneClean(self.cur)[0]
         self.cur.execute("""SELECT COUNT(ID) FROM CARDS WHERE STUDY_ID=%s""", (str(study_id),))
-        lencards = self.cur.fetchone()[0]
+        lencards = fetchoneClean(self.cur)[0]
         full_json['cards'] = {
             'average': str(average_sort) + '%',
             'total': lencards,
@@ -178,11 +178,11 @@ class Study:
         :return: the similarity matrix
         """
         curr.execute("""SELECT SIMILARITY_MATRIX FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
-        sm = curr.fetchone()[0]
+        sm = fetchoneClean(curr)[0]
         matrix = sm['matrix']
         card_names = sm['cardNames']
         curr.execute("""SELECT COUNT(ID) FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
-        total_sorts = curr.fetchone()[0]
+        total_sorts = fetchoneClean(curr)[0]
 
         similarity_matrix = []
         no = 0
@@ -201,7 +201,7 @@ class Study:
                              LEFT JOIN CARDS C
                              ON S.ID = C.STUDY_ID
                              WHERE S.ID=%s""", (str(study_id),))
-        study = self.cur.fetchall()
+        study = fetchallClean(self.cur)
         print(study)
 
         if len(study) == 0 or not study[0][0]:
@@ -218,11 +218,11 @@ class Study:
 
     def get_thanks_message(self, study_id):
         self.cur.execute("""SELECT MESSAGE_TEXT FROM STUDY WHERE ID=%s""", (str(study_id),))
-        message = self.cur.fetchone()[0].strip()
+        message = fetchoneClean(self.cur)
         return message
 
     def get_clusters(self, study_id, user_id):
         self.cur.execute("""SELECT TITLE FROM STUDY WHERE ID=%s AND USER_ID=%s""", (str(study_id), str(user_id)))
-        if not self.cur.fetchone():
+        if not fetchoneClean(self.cur):
             return {'message': 'INVALID STUDY'}
         return calculate_clusters(study_id)

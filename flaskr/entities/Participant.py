@@ -1,7 +1,9 @@
 from flask import current_app
 from ..db import conn
 import json
+from ..general import *
 # todo create participant weird structure
+
 class Participant:
     def __init__(self):
         self.participant_id = 0
@@ -10,7 +12,7 @@ class Participant:
 
     def post_categorization(self, study_id, categories, non_sorted, time, comment):
         self.cur.execute("""SELECT COUNT(ID) FROM CARDS WHERE STUDY_ID=%s""", (str(study_id),))
-        study_cards = self.cur.fetchone()[0]
+        study_cards = fetchoneClean(self.cur)[0]
 
         if not study_cards:
             return {'message': 'STUDY NOT FOUND'}
@@ -28,7 +30,7 @@ class Participant:
                             TIME_SPAN, COMMENTS, STUDY_ID) VALUES (%s, %s, %s, %s, %s, %s) RETURNING ID""",
                          (len(non_sorted), cards_sorted, categories_no, time, comment, str(study_id),))
         conn.commit()
-        self.participant_id = self.cur.fetchone()[0]
+        self.participant_id = fetchoneClean(self.cur)[0]
 
         # Increment completed / abandoned
         if cards_sorted == 100:
@@ -47,7 +49,7 @@ class Participant:
             c = categories[category]['cards']
             self.cur.execute("""SELECT ID FROM CATEGORIES WHERE CATEGORY_NAME = %s AND STUDY_ID = %s""",
                              (t, str(study_id),))
-            _id = self.cur.fetchone()
+            _id = fetchoneClean(self.cur)
             if _id:
                 _id = _id[0]
                 self.cur.execute("""UPDATE CATEGORIES SET FREQUENCY = FREQUENCY + 1 WHERE STUDY_ID = %s AND ID = %s""",
@@ -56,7 +58,7 @@ class Participant:
             else:
                 self.cur.execute("""INSERT INTO CATEGORIES (CATEGORY_NAME, STUDY_ID, FREQUENCY) VALUES (%s, %s, 1) RETURNING ID""",
                                  (t, str(study_id),))
-                _id = self.cur.fetchone()[0]
+                _id = fetchoneClean(self.cur)[0]
                 conn.commit()
             for card_id in c:
                 self.cur.execute("""UPDATE CARDS_CATEGORIES SET FREQUENCY = FREQUENCY + 1 WHERE CARD_ID = %s
@@ -69,7 +71,7 @@ class Participant:
         # U/update similarity matrix
         self.cur.execute("""SELECT SIMILARITY_MATRIX FROM STATS WHERE STUDY_ID = %s""",
                          (str(study_id),))
-        sim_json = self.cur.fetchone()[0]
+        sim_json = fetchoneClean(self.cur)[0]
 
         card_ids = sim_json['cardId']
         times_in_same_category = sim_json['matrix']

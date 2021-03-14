@@ -8,4 +8,4 @@ def fetchallClean(curr):
 
 def fetchoneClean(curr):
     """like the one above, but for one"""
-    return [i.strip() if isinstance(i, str) else i for i in curr.fetchall()]
+    return [i.strip() if isinstance(i, str) else i for i in curr.fetchone()]
