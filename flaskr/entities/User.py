@@ -2,7 +2,6 @@ import datetime
 import jwt
 from flask import current_app
 from passlib.apps import custom_app_context as pwd_context
-
 from ..db import conn
 
 class User:
@@ -63,7 +62,7 @@ class User:
 
     def get_username(self, user_id):
         self.cur.execute("""SELECT USERNAME FROM USER_TABLE WHERE ID = %s""", (user_id,))
-        return self.cur.fetchone()
+        return self.cur.fetchone()[0].strip()
 
     @staticmethod
     def validate_request(auth_token):

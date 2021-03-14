@@ -1,0 +1,28 @@
+cards = {}
+for elem in strippedFetchall:
+    card_name = elem[0]
+    if card_name not in cards:
+        cards[card_name] = {'cats_no': 1,
+                            'categories': [elem[1].strip()],
+                            'frequency': [elem[2]]}
+    else:
+        cards[card_name]['cats_no'] += 1
+        cards[card_name]['categories'].append(elem[1])
+        cards[card_name]['frequency'].append(elem[2])
+
+Calculate cards data
+Make the json array specified
+data: 0: card_name 1: categories_no 2: categories names 3: frequency
+cards = []
+for card_id in study['cards']:
+    card = study['cards'][card_id]
+    try:
+        categories = study['cards'][card_id]['categories']
+    except KeyError:
+        categories = []
+    try:
+        frequencies = study['cards'][card_id]['frequencies']
+    except KeyError:
+        frequencies = []
+    categories_no = len(categories)
+    cards.append([card['name'], categories_no, categories, frequencies])

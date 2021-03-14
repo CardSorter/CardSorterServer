@@ -1,15 +1,9 @@
 from flask import current_app
-
-from flaskr.db import get_db
 from ..db import conn
-
 import json
-
+# todo create participant weird structure
 class Participant:
     def __init__(self):
-        with current_app.app_context():
-            self.studies = get_db()['studies']
-            self.participants = get_db()['participants']
         self.participant_id = 0
         with current_app.app_context():
             self.cur = conn.cursor()

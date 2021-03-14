@@ -4,7 +4,6 @@ import numpy as np
 
 from bson import ObjectId
 from flask import current_app
-from pymongo.errors import WriteError
 
 from flaskr.db import get_db
 from ..db import conn
@@ -12,26 +11,18 @@ import json
 
 def update_stats(study_id):
     with current_app.app_context():
-        studies = get_db()['studies']
-        participants = get_db()['participants']
+        cur = conn.cursor()
 
-    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
-    # Calculate completion
-    total = len(study['participants'])
-    completed = 0
-    sort_percentages = 0
-    for participant_id in study['participants']:
-        participant = list(participants.find({'_id': ObjectId(participant_id)}))[0]
-        if participant['cards_sorted'] == 100:
-            completed += 1
-        sort_percentages += participant['cards_sorted']
+    cur.execute("""SELECT (CAST(SUM(CASE WHEN CARDS_SORTED = 100 THEN 1 ELSE 0 END) AS FLOAT)/COUNT(*))*100 AS 
+                   COMPLETION FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
+    completion = cur.fetchone()[0]
+    cur.execute("""SELECT (CAST(SUM(CARDS_SORTED) AS FLOAT)/COUNT(*)) AS 
+                   COMPLETION FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
+    average_sort = cur.fetchone()[0]
 
-    completion = str(int(completed / total * 100)) + '%'
-    studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.completion': completion}})
-
-    # Calculate average sort
-    average_sort = int(sort_percentages/total)
-    studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.average_sort': average_sort}})
+    cur.execute("""UPDATE STATS SET COMPLETION = %s WHERE STUDY_ID = %s""", (completion, str(study_id),))
+    cur.execute("""UPDATE STATS SET AVERAGE_SORT = %s WHERE STUDY_ID = %s""", (average_sort, str(study_id),))
+    conn.commit()
 
 
 def build_similarity_matrix(study_id):
@@ -62,7 +53,6 @@ def build_similarity_matrix(study_id):
     conn.commit()
 
 
-
 def calculate_clusters(study_id):
     """
     Calculates the clusters based on the average-linkage hierarchical clustering.
@@ -70,19 +60,25 @@ def calculate_clusters(study_id):
     :param study_id:
     :return: the clusters
     """
+
     with current_app.app_context():
-        studies = get_db()['studies']
+        cur = conn.cursor()
 
-    study = list(studies.find({'_id': ObjectId(study_id)}))[0]
-    if study['stats']['clusters_changed']:
+    cur.execute("""SELECT * FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
+    study = cur.fetchone()
+    clusters_calculating = study[4]
+    clusters_changed = study[5]
 
-        if study['stats']['clusters_calculating']:
+    if clusters_changed:
+        if clusters_calculating:
             return {'message': 'calculating'}
+        cur.execute("""UPDATE STATS SET CLUSTERS_CALCULATING = TRUE WHERE STUDY_ID = %s""", (str(study_id),))
+        conn.commit()
 
-        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': True}})
-        distance = study['stats']['similarities']['times_in_same_category']
-        card_names = study['stats']['similarities']['card_names']
-        total_participants = len(study['participants'])
+        distance = study[7]['matrix']
+        card_names = study[7]['cardNames']
+        cur.execute("""SELECT COUNT(ID) FROM PARTICIPANT WHERE STUDY_ID = %s""", (str(study_id),))
+        total_participants = cur.fetchone()[0]
 
         distance_matrix = calculate_square_form(distance, total_participants)
         distArray = ssd.squareform(distance_matrix)
@@ -95,14 +91,14 @@ def calculate_clusters(study_id):
         tree = hierarchy.to_tree(clusters, rd=False)
         # TODO Distance 0 on root
         dendro = dict(children=[], hierarchy=0, distance=100)
-
         add_node(tree, dendro, card_names)
-        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters': dendro}})
-        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.calculating': False}})
 
-        studies.update_one({'_id': ObjectId(study_id)}, {'$set': {'stats.clusters_changed': False}})
+        cur.execute("""UPDATE STATS SET CLUSTERS = %s WHERE STUDY_ID = %s""", (json.dumps(dendro), str(study_id),))
+        cur.execute("""UPDATE STATS SET CLUSTERS_CALCULATING = FALSE WHERE STUDY_ID = %s""", (str(study_id),))
+        cur.execute("""UPDATE STATS SET CLUSTERS_CHANGED = FALSE WHERE STUDY_ID = %s""", (str(study_id),))
+        conn.commit()
     else:
-        dendro = study['stats']['clusters']
+        dendro = json.loads(study[6])
 
     return dendro
 
@@ -126,12 +122,13 @@ def calculate_square_form(diagonal_matrix, total_sorts):
             if i == j:
                 matrix[i][j] = 0
 
+    return matrix
+
     # matrix = np.tril(diagonal_matrix, k=-1)
     # matrix = matrix + matrix.T
     # matrix = matrix * (-100 / total_sorts) + 100
     # np.fill_diagonal(matrix, 0)
-
-    return matrix
+    # return matrix
 
 
 def add_node(node, parent, card_names):
