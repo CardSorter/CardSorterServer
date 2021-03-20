@@ -2,9 +2,9 @@
 #### Description
 Registers a new user
 #### Submission information
-#####Method: `Post`  
-#####Endpoint: `/user_endpoint?register=true`  
-#####Body of the request: 
+##### Method: `Post`  
+##### Endpoint: `/user_endpoint?register=true`  
+##### Body of the request: 
 ```json
 {
     "username": string,
@@ -12,7 +12,7 @@ Registers a new user
     "email": string
 }
 ```
-#####Errors:  
+##### Errors:  
 Empty strings will result in an error message, e.g.:
 ```json
 {'message': 'EMPTY field'}
@@ -21,15 +21,15 @@ Duplicate usernames and emails will result in an error message, e.g.:
 ```json
 {'message': 'DUPLICATE field'}
 ```
-######HTTP Status Code: `200`
-#####Successful return:
+###### HTTP Status Code: `200`
+##### Successful return:
 ```json
 {
     "auth_token": string,
     "location": string
 }
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -37,16 +37,16 @@ Duplicate usernames and emails will result in an error message, e.g.:
 #### Description
 Logins an existing user
 #### Submission information
-#####Method: `Post`  
-#####Endpoint: `/user_endpoint`  
-#####Body of the request: 
+##### Method: `Post`  
+##### Endpoint: `/user_endpoint`  
+##### Body of the request: 
 ```json
 {
     "username": string,
     "password": string
 }
 ```
-#####Errors:  
+##### Errors:  
 Empty strings will result in an error message, e.g.:
 ```json
 {'message': 'EMPTY field'}
@@ -59,15 +59,15 @@ If the supplied password does not match the user's:
 ```json
 {'message': 'INVALID PASSWORD'}
 ```
-######HTTP Status Code: `200`
-#####Successful return:
+###### HTTP Status Code: `200`
+##### Successful return:
 ```json
 {
     "auth_token": string,
     "location": string
 }
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -75,9 +75,9 @@ If the supplied password does not match the user's:
 #### Description
 Creates a study
 #### Submission information
-#####Method: `Post`  
-#####Endpoint: `/studies_endpoint`  
-#####Body of the request: 
+##### Method: `Post`  
+##### Endpoint: `/studies_endpoint`  
+##### Body of the request: 
 ```json
 {
     "title": string,
@@ -88,18 +88,18 @@ Creates a study
     "message": string
 }
 ```
-#####Errors:  
+##### Errors:  
 If the body of the request is malformed:
 ```json
 {"error": "Cards is not an array"}
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 If the authorization token is wrong:
 ```json
 {"location": string}
 ```
-######HTTP Status Code: `401`
-#####Successful return:
+###### HTTP Status Code: `401`
+##### Successful return:
 ```json
 {
     "study": {
@@ -115,7 +115,7 @@ If the authorization token is wrong:
     }
 }
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -124,19 +124,19 @@ If the authorization token is wrong:
 Returns the user's name that corresponds to the authorization token
 provided
 #### Submission information
-#####Method: `Get`  
-#####Endpoint: `/studies_endpoint?username=true`  
-#####Errors:  
+##### Method: `Get`  
+##### Endpoint: `/studies_endpoint?username=true`  
+##### Errors:  
 If the authorization token is wrong:
 ```json
 {"location": string}
 ```
-######HTTP Status Code: `401`
-#####Successful return:
+###### HTTP Status Code: `401`
+##### Successful return:
 ```json
 {"username": string}
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -145,31 +145,31 @@ If the authorization token is wrong:
 Returns the clusters of the study with the specified id, by taking
 into account the user's id through the authorization token
 #### Submission information
-#####Method: `Get`  
-#####Endpoint: `/studies_endpoint?id={study's id number}&clusters=true`  
-#####Errors:  
+##### Method: `Get`  
+##### Endpoint: `/studies_endpoint?id={study's id number}&clusters=true`  
+##### Errors:  
 If the authorization token is wrong:
 ```json
 {"location": string}
 ```
-######HTTP Status Code: `401`
+###### HTTP Status Code: `401`
 If the user hasn't made the study that he requested:
 ```json
 {'message': 'INVALID STUDY'}
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 If the clusters of the study cannot be calculated because of data 
 scarcity:
 ```json
 {'message': 'not enough data'}
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 If the clusters are being calculated:
 ```json
 {'message': 'calculating'}
 ```
-######HTTP Status Code: `200`
-#####Successful return:
+###### HTTP Status Code: `200`
+##### Successful return:
 ```json
 {
     "clusters": {
@@ -185,7 +185,7 @@ If the clusters are being calculated:
     }
 }
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -194,19 +194,19 @@ If the clusters are being calculated:
 Returns the study with the specified id, by taking
 into account the user's id through the authorization token
 #### Submission information
-#####Method: `Get`  
-#####Endpoint: `/studies_endpoint?id={study's id number}`  
-#####Errors:  
+##### Method: `Get`  
+##### Endpoint: `/studies_endpoint?id={study's id number}`  
+##### Errors:  
 If the authorization token is wrong:
 ```json
 {"location": string}
 ```
-######HTTP Status Code: `401`
+###### HTTP Status Code: `401`
 If the user hasn't made the study that he requested:
 ```json
 {'message': 'INVALID STUDY'}
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 If there are no participants:
 ```json
 {
@@ -219,8 +219,8 @@ If there are no participants:
     }
 }
 ```
-######HTTP Status Code: `200`
-#####Successful return:
+###### HTTP Status Code: `200`
+##### Successful return:
 ```json
 {
     "study": {
@@ -257,7 +257,7 @@ If there are no participants:
     }
 }
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -266,15 +266,15 @@ If there are no participants:
 Returns all studies of a user by taking into account the
 user's id through the authorization token
 #### Submission information
-#####Method: `Get`  
-#####Endpoint: `/studies_endpoint`  
-#####Errors:  
+##### Method: `Get`  
+##### Endpoint: `/studies_endpoint`  
+##### Errors:  
 If the authorization token is wrong:
 ```json
 {"location": string}
 ```
-######HTTP Status Code: `401`
-#####Successful return:
+###### HTTP Status Code: `401`
+##### Successful return:
 ```json
 {
     "studies": [
@@ -291,7 +291,7 @@ If the authorization token is wrong:
     ]
 }
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -299,16 +299,16 @@ If the authorization token is wrong:
 #### Description
 Returns the cards of a study
 #### Submission information
-#####Method: `Get`  
-#####Endpoint: `/sort_endpoint?study_id={study's id}&cards=true`  
-#####Errors:  
+##### Method: `Get`  
+##### Endpoint: `/sort_endpoint?study_id={study's id}&cards=true`  
+##### Errors:  
 If the study_id parameter of the request is malformed
 or the study does not exist:
 ```json
 {"error": {"message": "STUDY NOT FOUND"}}
 ```
-######HTTP Status Code: `404`
-#####Successful return:
+###### HTTP Status Code: `404`
+##### Successful return:
 ```json
 {
     "cards": [
@@ -320,7 +320,7 @@ or the study does not exist:
     ]
 }
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
 
 
 
@@ -328,9 +328,9 @@ or the study does not exist:
 #### Description
 Creates a sorting of the study with the id specified
 #### Submission information
-#####Method: `Post`  
-#####Endpoint: `/sort_endpoint`  
-#####Body of the request: 
+##### Method: `Post`  
+##### Endpoint: `/sort_endpoint`  
+##### Body of the request: 
 ```json
 {
     "studyID": string,
@@ -345,14 +345,14 @@ Creates a sorting of the study with the id specified
     "comment": string
 }
 ```
-#####Errors:  
+##### Errors:  
 If the studyID does not correspond to an existing study:
 ```json
 {"error": {"message": "STUDY NOT FOUND"}}
 ```
-######HTTP Status Code: `200`
-#####Successful return:
+###### HTTP Status Code: `200`
+##### Successful return:
 ```json
 [string]
 ```
-######HTTP Status Code: `200`
+###### HTTP Status Code: `200`
