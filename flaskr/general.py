@@ -4,8 +4,16 @@ def fetchallClean(curr):
     :param curr: (self.cur)
     :return: the fetched thing with stripped strings
     """
-    return  [[i.strip() if isinstance(i, str) else i for i in j] for j in curr.fetchall()]
+    data = curr.fetchall()
+    if data:
+        return  [[i.strip() if isinstance(i, str) else i for i in j] for j in data]
+    else:
+        return []
 
 def fetchoneClean(curr):
     """like the one above, but for one"""
-    return [i.strip() if isinstance(i, str) else i for i in curr.fetchone()]
+    data = curr.fetchone()
+    if data:
+        return [i.strip() if isinstance(i, str) else i for i in data]
+    else:
+        return []
