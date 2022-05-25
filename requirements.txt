@@ -4,5 +4,5 @@ Flask-RESTful==0.3.8
 Flask-Cors==3.0.9
 scipy==1.5.2
 numpy==1.19.2
-PyJWT==1.7.1
+PyJWT==2.4.0
 passlib==1.7.2
