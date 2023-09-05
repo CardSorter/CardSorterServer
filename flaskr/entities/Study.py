@@ -227,3 +227,43 @@ class Study:
     def _post_study(self, study):
         item = self.studies.insert_one(study)
         self.study_id = ObjectId(item.inserted_id)
+
+    def update_study(self, study_id,editDate,endDate=None, title=None, is_live=None,description=None):
+            """
+            Update a study's title or isLive status.
+            :param study_id: ID of the study to update
+            :param title: New title (optional)
+            :param is_live: New isLive status (optional)
+            """
+            update_data = {}
+            
+            if title is not None:
+                update_data['title'] = title
+            
+            if is_live is not None:
+                update_data['isLive'] = is_live
+            if description is not None:
+                update_data['description'] = description
+
+            if update_data:  
+                result = self.studies.update_one({'_id': ObjectId(study_id)},{'$set': {'endDate': endDate,'editDate':editDate,**update_data}})
+                
+                if result.modified_count > 0:
+                    return True
+            
+            return False
+    def delete_study(self, study_id):
+        """
+        Delete a study from the database.
+        :param study_id: ID of the study to delete
+        :return: True if deleted successfully, False otherwise
+        """
+        # First, delete the study from the studies collection
+        result = self.studies.delete_one({'_id': ObjectId(study_id)})
+        
+        if result.deleted_count > 0:
+            # Remove the study from users' study lists
+            self.users.update_many({}, {'$pull': {'studies': ObjectId(study_id)}})
+            return True
+        
+        return False 
