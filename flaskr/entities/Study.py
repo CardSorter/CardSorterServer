@@ -86,6 +86,8 @@ class Study:
 
         # Make the json array specified
         # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
+        study_participants = study['participants']
+        
         participants = []
         no = 1
         try:
@@ -159,6 +161,8 @@ class Study:
 
         # Make the json array specified
         # data: 0: category name 1: cards no 2: cards 3: frequency 4: participants
+        
+        study_categories = study['categories']
         categories = []
         for category_name in study['categories']:
             category = study['categories'][category_name]
@@ -174,6 +178,31 @@ class Study:
         }
         study['similarityMatrix'] = self._convert_similarity_matrix(study)
 
+        print("total participants: ", total)
+        participants = []
+        no = 1
+        for participant_id in study_participants:
+            participant = list(self.participants.find({'_id': participant_id}, {'_id': 0}))[0]
+
+            # Extract categories and cards for the participant
+            categories = []
+            comment = participant['comment']
+            for category_name, category_card in study_categories.items():
+                participant_data ={
+                    'no': f'#{no}',
+                    'category': category_name,
+                    'cards': category_card['cards'],
+                    'comment': comment,
+                }
+                comment = ''
+                participants.append(participant_data)
+
+            no += 1
+
+        # Assign the 'participants' array to your 'study' object
+        study['sorting'] = {
+            'data': participants,
+        }
         return study
 
     @staticmethod
