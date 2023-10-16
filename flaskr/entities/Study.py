@@ -17,7 +17,7 @@ class Study:
             self.participants = get_db()['participants']
         self.study_id = 0
 
-    def create_study(self, title, description, cards, message, user_id):
+    def create_study(self, title, description, cards, message, link, user_id):
         date = datetime.datetime.utcnow()
 
         # Remove undefined cards
@@ -33,6 +33,7 @@ class Study:
             'description': description,
             'cards': sanitized_cards,
             'message': message,
+            'link':link,
             'abandonedNo': 0,
             'completedNo': 0,
             'editDate': date,
@@ -164,6 +165,7 @@ class Study:
         
         study_categories = study['categories']
         categories = []
+       
         for category_name in study['categories']:
             category = study['categories'][category_name]
             categories.append([category_name, len(category['cards']), category['cards'],
@@ -183,15 +185,18 @@ class Study:
         no = 1
         for participant_id in study_participants:
             participant = list(self.participants.find({'_id': participant_id}, {'_id': 0}))[0]
-
+            
             # Extract categories and cards for the participant
-            categories = []
             comment = participant['comment']
-            for category_name, category_card in study_categories.items():
-                participant_data ={
+            for category_data in participant['categories'].items():
+              
+                category_name = category_data[1]['title']
+                cards = category_data[1]['cards']
+
+                participant_data = {
                     'no': f'#{no}',
                     'category': category_name,
-                    'cards': category_card['cards'],
+                    'cards': cards,
                     'comment': comment,
                 }
                 comment = ''
@@ -239,11 +244,17 @@ class Study:
         for card in study['cards'].values():
             cards.append(card)
         return cards
+    
+    def get_thanks_message_and_link(self, study_id):
 
-    def get_thanks_message(self, study_id):
-        message = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0]
-        return message
+        return     list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0],list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
 
+        
+
+    # def get_link(self, study_id):
+    #     link = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
+    #     return link
+    
     def get_clusters(self, study_id, user_id):
         # Check if the study belongs to the user
         available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
@@ -289,7 +300,6 @@ class Study:
         """
         # First, delete the study from the studies collection
         result = self.studies.delete_one({'_id': ObjectId(study_id)})
-        
         if result.deleted_count > 0:
             # Remove the study from users' study lists
             self.users.update_many({}, {'$pull': {'studies': ObjectId(study_id)}})

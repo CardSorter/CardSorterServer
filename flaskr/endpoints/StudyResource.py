@@ -72,10 +72,13 @@ class StudyResource(Resource):
 
         if not user_id or isinstance(user_id, dict):
             return make_response(jsonify(location=Config.url+'auth/'), 401)
-
+        
         req = request.json
         study = Study()
-        error = study.create_study(req['title'], req['description'], req['cards'], req['message'], user_id)
+        if 'link' in req:
+            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], req['link'],user_id)
+        else:
+            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], 'undefined',user_id)
         date = datetime.datetime.now().isoformat()
 
         if error:

@@ -61,7 +61,7 @@ class CardSorterResource(Resource):
         study = Study()
         print('Updating stats for: ', study_id)
         update_stats(study_id)
-        return jsonify(study.get_thanks_message(study_id))
+        return jsonify(study.get_thanks_message_and_link(study_id))
 
     def delete(self):
         pass
