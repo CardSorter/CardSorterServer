@@ -113,11 +113,12 @@ class Study:
             }
 
         total = len(study['participants'])
-
+        print(study)
         # Return no participants json
         if total == 0:
             return {
                 'title': study['title'],
+                
                 'isLive': study['isLive'],
                 'launchedDate': study['launchedDate'],
                 'participants': 0,
@@ -210,6 +211,13 @@ class Study:
         }
         return study
 
+    def get_title_description(self, study_id):
+        study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
+        return {
+            'title': study['title'],
+            'description': study['description'],
+        }
+    
     @staticmethod
     def _convert_similarity_matrix(study):
         """

@@ -9,7 +9,7 @@ from flaskr.stats.Stats import update_stats
 class CardSorterResource(Resource):
     def get(self):
         """
-        Sends the details used for the card sort of a study.
+        Sends the details used for the card sort of a study, title and description.
         There is one *error* that is returned:
             -STUDY NOT FOUND
         Default case:
@@ -23,11 +23,12 @@ class CardSorterResource(Resource):
         if request.args.get('cards'):
             study = Study()
             cards = study.get_cards(study_id)
+            title_desc = study.get_title_description(study_id)
 
             if isinstance(cards, dict) and cards['message']:
                 return make_response(jsonify(error=cards), 404)
-
-            return jsonify(cards=cards)
+            print(title_desc['title'])
+            return jsonify(cards=cards,title=title_desc['title'],description=title_desc['description'])
 
     def post(self):
         """
