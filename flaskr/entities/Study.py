@@ -113,7 +113,6 @@ class Study:
             }
 
         total = len(study['participants'])
-        print(study)
         # Return no participants json
         if total == 0:
             return {
@@ -149,8 +148,12 @@ class Study:
                 frequencies = study['cards'][card_id]['frequencies']
             except KeyError:
                 frequencies = []
+            try:
+                description = study['cards'][card_id]['description']
+            except KeyError:
+                description = []
             categories_no = len(categories)
-            cards.append([card['name'], categories_no, categories, frequencies])
+            cards.append([card['name'], categories_no, categories, frequencies,description])
 
         study['cards'] = {
             'average': str(study['stats']['average_sort']) + '%',
