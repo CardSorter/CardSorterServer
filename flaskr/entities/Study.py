@@ -117,7 +117,7 @@ class Study:
         if total == 0:
             return {
                 'title': study['title'],
-                
+                'description': study['description'],
                 'isLive': study['isLive'],
                 'launchedDate': study['launchedDate'],
                 'participants': 0,
