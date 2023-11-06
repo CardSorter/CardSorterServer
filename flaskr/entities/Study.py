@@ -138,6 +138,7 @@ class Study:
         # Make the json array specified
         # data: 0: card_name 1: categories_no 2: categories names 3: frequency
         cards = []
+        study_cards = study['cards']
         for card_id in study['cards']:
             card = study['cards'][card_id]
             try:
@@ -195,8 +196,10 @@ class Study:
             for category_data in participant['categories'].items():
               
                 category_name = category_data[1]['title']
-                cards = category_data[1]['cards']
-
+                cardsid = category_data[1]['cards']
+                cards = []
+                for id in cardsid:
+                   cards.append(study_cards[str(id)]['name'])
                 participant_data = {
                     'no': f'#{no}',
                     'category': category_name,
