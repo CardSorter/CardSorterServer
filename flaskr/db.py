@@ -24,3 +24,8 @@ def get_db():
 
 
     return g.db
+
+'''mc'''
+import psycopg2
+conn = psycopg2.connect("dbname=card_sorter user=rest_api password=password")
+

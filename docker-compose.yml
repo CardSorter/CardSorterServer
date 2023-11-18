@@ -1,20 +1,19 @@
 version: '3'
 services:
-    mongo:
-        image: mongo:4.4
-        container_name: card_sorter_mongodbdev
-        restart: "no"
-        ports:
-            - 27017:27017
-        environment:
-          MONGO_INITDB_ROOT_USERNAME: "rest_api"
-          MONGO_INITDB_ROOT_PASSWORD: "password"
-          MONGO_INITDB_DATABASE: "card_sorter"
-          MONGODB_DATA_DIR: /data/db
-          MONDODB_LOG_DIR: /dev/null
-        volumes:
-            - ./mongodata:/data/db
-
+  mongo:
+    image: mongo:4.4
+    container_name: card_sorter_mongodbdev
+    restart: "no"
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "rest_api"
+      MONGO_INITDB_ROOT_PASSWORD: "password"
+      MONGO_INITDB_DATABASE: "card_sorter"
+      MONGODB_DATA_DIR: /data/db
+      MONDODB_LOG_DIR: /dev/null
+    volumes:
+      - ./mongodata:/data/db
     mongo-express:
       image: mongo-express
       restart: "no"
@@ -26,3 +25,4 @@ services:
         ME_CONFIG_MONGODB_SERVER: "mongo:27017"
       depends_on:
         - mongo
+

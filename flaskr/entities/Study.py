@@ -1,21 +1,21 @@
 import datetime
 
-from bson import ObjectId
 from flask import current_app
 from math import ceil
 
-from flaskr.db import get_db
 from flaskr.stats.Stats import build_similarity_matrix, calculate_clusters
 from flaskr.Config import Config
-
+from ..db import conn
+from pandas import DataFrame
+from numpy import ndarray
+from ..general import *
 
 class Study:
     def __init__(self):
-        with current_app.app_context():
-            self.users = get_db()['users']
-            self.studies = get_db()['studies']
-            self.participants = get_db()['participants']
         self.study_id = 0
+        with current_app.app_context():
+            self.cur = conn.cursor()
+
 
     def create_study(self, title, description, cards, message, link, user_id):
         date = datetime.datetime.utcnow()
@@ -46,47 +46,33 @@ class Study:
         # Create the appropriate fields
         build_similarity_matrix(str(self.study_id))
 
-        # Link study to the user
-        self.users.update_one({'_id': ObjectId(user_id)}, {'$push': {'studies': self.study_id}})
 
     def get_studies(self, user_id):
-        study_ids = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
-        studies = []
-        for study_id in study_ids:
-            study = list(self.studies.find({'_id': ObjectId(study_id)}, {
-                'title': 1,
-                'abandonedNo': 1,
-                'completedNo': 1,
-                'editDate': 1,
-                'isLive': 1,
-                'launchedDate': 1,
-                'endDate': 1}))
-            if len(study) > 0:
-                study = study[0]
-            else:
-                print('Study not found:', study_id)
-                continue
-            study['id'] = str(study['_id'])
-            study['_id'] = None
-            studies.append(study)
+        self.cur.execute("""SELECT ID, TITLE, ABANDONED_NO, COMPLETED_NO, EDIT_DATE, IS_LIVE, LAUNCHED_DATE, END_DATE
+                            FROM STUDY WHERE USER_ID=%s""", (str(user_id),))
+        studies = fetchallClean(self.cur)
         return studies
 
     def get_study(self, study_id, user_id):
-        # Check if the study belongs to the user
-        available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
-
-        if ObjectId(study_id) not in available_studies:
+        self.cur.execute("""SELECT * FROM STUDY WHERE USER_ID=%s AND ID=%s""", (str(user_id), str(study_id),))
+        study = [i.strip() if isinstance(i, str) else i for i in fetchoneClean(self.cur)]
+        if not study:
             return {'message': 'INVALID STUDY'}
 
-        study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
-        study['id'] = str(study['_id'])
-        study['_id'] = None
-
-        # Make full json structure
-        # Calculate participants data
-
+        full_json = {
+            "id": study[0],
+            "title": study[2],
+            "completed_no": study[3],
+            "abandoned_no": study[4],
+            "edit_date": study[5],
+            "launched_date": study[6],
+            "end_date": study[7],
+            "is_live": study[8],
+            "message_text": study[9]
+        }
         # Make the json array specified
         # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
+
         study_participants = study['participants']
         
         participants = []
@@ -121,15 +107,18 @@ class Study:
                 'isLive': study['isLive'],
                 'launchedDate': study['launchedDate'],
                 'participants': 0,
-                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
+                'shareUrl': Config.url + '/sort/' + '?id=' + str(study_id)
             }
 
-        study['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study['id'])
+        full_json['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study_id)
 
-        study['participants'] = {
-            'completion': study['stats']['completion'],
+        self.cur.execute("""SELECT * FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
+        stats = fetchoneClean(self.cur)
+
+        full_json['participants'] = {
+            'completion': stats[3],
             'total': total,
-            'completed': study['completedNo'],
+            'completed': study[4],
             'data': participants
         }
 
@@ -177,13 +166,13 @@ class Study:
                                category['frequencies'], category['participants']])
 
         study['categories'] = {
+
             'similarity': '0%',
-            'total': len(categories),
+            'total': int(tot),
             'similar': 0,
             'merged': 0,
-            'data': categories,
+            'data': cats,
         }
-        study['similarityMatrix'] = self._convert_similarity_matrix(study)
 
         print("total participants: ", total)
         participants = []
@@ -225,34 +214,43 @@ class Study:
         }
     
     @staticmethod
-    def _convert_similarity_matrix(study):
+    def _convert_similarity_matrix(study_id, curr):
         """
         Converts the times each card was found in the same category to the actual percentage.
         This also includes the times that a card was not sorted. Meaning that a card can be sorted with it's self
         less than 100%.
-        :param study: the study document
+        :param study_id: the study id
+        :param curr: conn.cur() of psycopg2
         :return: the similarity matrix
         """
-        total_sorts = len(study['participants']['data'])
-        card_names = study['stats']['similarities']['card_names']
+        curr.execute("""SELECT SIMILARITY_MATRIX FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
+        sm = fetchoneClean(curr)[0]
+        matrix = sm['matrix']
+        card_names = sm['cardNames']
+        curr.execute("""SELECT COUNT(ID) FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
+        total_sorts = fetchoneClean(curr)[0]
+
         similarity_matrix = []
         no = 0
-        for line in study['stats']['similarities']['times_in_same_category']:
-            for i in range(0, len(line) - 1):
+        for line in matrix:
+            for i in range(len(line) - 1):
                 line[i] = ceil((line[i]/total_sorts) * 100)
 
             line[len(line) - 1] = card_names[no]
             similarity_matrix.append(line)
             no += 1
-
         return similarity_matrix
 
     def get_cards(self, study_id):
-        study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1, 'isLive': 1}))
+        self.cur.execute("""SELECT IS_LIVE, CARD_NAME, C.DESCRIPTION, C.ID
+                             FROM STUDY S
+                             LEFT JOIN CARDS C
+                             ON S.ID = C.STUDY_ID
+                             WHERE S.ID=%s""", (str(study_id),))
+        study = fetchallClean(self.cur)
 
-        if len(study) == 0 or not study[0]['isLive']:
+        if len(study) == 0 or not study[0][0]:
             return {'message': 'STUDY NOT FOUND'}
-        study = study[0]
 
         cards = []
         for card in study['cards'].values():
@@ -263,19 +261,16 @@ class Study:
 
         return     list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0],list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
 
-        
+
 
     # def get_link(self, study_id):
     #     link = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
     #     return link
     
     def get_clusters(self, study_id, user_id):
-        # Check if the study belongs to the user
-        available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
-
-        if ObjectId(study_id) not in available_studies:
+        self.cur.execute("""SELECT TITLE FROM STUDY WHERE ID=%s AND USER_ID=%s""", (str(study_id), str(user_id)))
+        if not fetchoneClean(self.cur):
             return {'message': 'INVALID STUDY'}
-
         return calculate_clusters(study_id)
 
     def _post_study(self, study):
@@ -320,3 +315,4 @@ class Study:
             return True
         
         return False 
+
