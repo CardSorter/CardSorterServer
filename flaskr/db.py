@@ -13,11 +13,11 @@ def get_db():
 
         if (os.environ.get('MONGODB_USERNAME')):
             mongoURI = 'mongodb://' + db_username + ':' + db_password + '@' + db_host + ':27017/' + db_database
-            conn = MongoClient(mongoURI, authSource=str(db_database))
+            conn = MongoClient(mongoURI, authSource=str(db_database)) #, useUnifiedTopology=True)
         else:
             # Do not authenticate over a db for development
             mongoURI = 'mongodb://' + db_username + ':' + db_password + '@' + db_host + ':27017/'
-            conn = MongoClient(mongoURI)
+            conn = MongoClient(mongoURI)#, useUnifiedTopology=True)
             
         g.conn = conn
         g.db = conn[db_database]
