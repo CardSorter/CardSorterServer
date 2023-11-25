@@ -2,5 +2,6 @@
 */**/__pycache__/
 venv/
 */**/.vscode
-env/
 mongodata/
+db_data/
+mprototypes/

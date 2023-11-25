@@ -16,8 +16,20 @@ class Study:
         with current_app.app_context():
             self.cur = conn.cursor()
 
+    def create_study(self, title, description, cards, message, user_id):
+        """
+        :param title:
+        :param description:
+        :param cards: [{"name": str,
+                        "id": int,
+                        "description": str}]
+        :param message:
+        :param user_id:
+        :return:
+        """
+        if not isinstance(cards, dict):
+            return "Cards is not an array"
 
-    def create_study(self, title, description, cards, message, link, user_id):
         date = datetime.datetime.utcnow()
 
         # Remove undefined cards
@@ -28,20 +40,16 @@ class Study:
             except KeyError:
                 sanitized_cards.pop(card_id, None)
 
-        study = {
-            'title': title,
-            'description': description,
-            'cards': sanitized_cards,
-            'message': message,
-            'link':link,
-            'abandonedNo': 0,
-            'completedNo': 0,
-            'editDate': date,
-            'isLive': True,
-            'launchedDate': date,
-            'participants': [],
-        }
-        self._post_study(study)
+
+        self.cur.execute("""INSERT INTO STUDY (TITLE, DESCRIPTION, MESSAGE_TEXT, ABANDONED_NO,
+                            COMPLETED_NO, EDIT_DATE, IS_LIVE, LAUNCHED_DATE, USER_ID) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            RETURNING id;""",
+                         (title, description, message, 0, 0, date, True, date, user_id))
+        self.study_id = fetchoneClean(self.cur)[0]
+        for ca in sanitized_cards:
+            self.cur.execute("""INSERT INTO CARDS (STUDY_ID, CARD_NAME, DESCRIPTION) VALUES (%s, %s ,%s)""",
+                             (self.study_id, sanitized_cards[ca]["name"], sanitized_cards[ca]["description"]))
+        conn.commit()
 
         # Create the appropriate fields
         build_similarity_matrix(str(self.study_id))
@@ -72,40 +80,24 @@ class Study:
         }
         # Make the json array specified
         # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
-
-        study_participants = study['participants']
-        
-        participants = []
+        self.cur.execute("""SELECT * FROM PARTICIPANT WHERE STUDY_ID=%s""", (str(study_id),))
+        unfiltered_participants = fetchallClean(self.cur)
         no = 1
-        try:
-            for participant_id in study['participants']:
-                participant = list(self.participants.find({'_id': participant_id},
-                                                          {'_id': 0}))[0]
-                try:
-                    time = participant['time']
-                except KeyError:
-                    time = 'N/A'
+        participants = []
+        for participant in unfiltered_participants:
+            time = participant[3]
+            cards_sorted = participant[2]
+            categories_no = participant[4]
+            participants.append(['#' + str(no), time, str(cards_sorted) + '%', categories_no])
+            no += 1
+        total = len(participants)
 
-                participants.append(['#' + str(no), time, str(participant['cards_sorted']) + '%'
-                                    , participant['categories_no']])
-                no += 1
-        except KeyError:
-            return {
-                'title': study['title'],
-                'isLive': study['isLive'],
-                'launchedDate': study['launchedDate'],
-                'participants': 0,
-                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
-            }
-
-        total = len(study['participants'])
         # Return no participants json
         if total == 0:
             return {
-                'title': study['title'],
-                'description': study['description'],
-                'isLive': study['isLive'],
-                'launchedDate': study['launchedDate'],
+                'title': study[3],
+                'isLive': study[9],
+                'launchedDate': study[7],
                 'participants': 0,
                 'shareUrl': Config.url + '/sort/' + '?id=' + str(study_id)
             }
@@ -122,51 +114,48 @@ class Study:
             'data': participants
         }
 
-        # Calculate cards data
+        self.cur.execute("""SELECT DISTINCT C.CARD_NAME, CATS.CATEGORY_NAME, CC.FREQUENCY
+                            FROM CARDS C
+                            LEFT JOIN CARDS_CATEGORIES CC
+                            ON C.ID = CC.CARD_ID
+                            LEFT JOIN CATEGORIES CATS
+                            ON CATS.ID = CC.CATEGORY_ID
+                            WHERE C.STUDY_ID = %s""", (str(study_id),))
 
-        # Make the json array specified
-        # data: 0: card_name 1: categories_no 2: categories names 3: frequency
-        cards = []
-        study_cards = study['cards']
-        for card_id in study['cards']:
-            card = study['cards'][card_id]
-            try:
-                categories = study['cards'][card_id]['categories']
-            except KeyError:
-                categories = []
-            try:
-                frequencies = study['cards'][card_id]['frequencies']
-            except KeyError:
-                frequencies = []
-            try:
-                description = study['cards'][card_id]['description']
-            except KeyError:
-                description = []
-            categories_no = len(categories)
-            cards.append([card['name'], categories_no, categories, frequencies,description])
+        strippedFetchall = fetchallClean(self.cur)
+        cont = DataFrame(strippedFetchall, columns=['card_name', 'cat_name', 'freq'])
+        cards = cont.groupby(['card_name']).agg({'cat_name': ['count', list], 'freq': list}).reset_index().values.tolist()
 
-        study['cards'] = {
-            'average': str(study['stats']['average_sort']) + '%',
-            'total': len(study['cards']),
-            'sorted': int(total * study['stats']['average_sort'] * (1 / 100)),
-            'data': cards,
+        self.cur.execute("""SELECT AVERAGE_SORT FROM STATS WHERE STUDY_ID=%s""", (str(study_id),))
+        average_sort = fetchoneClean(self.cur)[0]
+        self.cur.execute("""SELECT COUNT(ID) FROM CARDS WHERE STUDY_ID=%s""", (str(study_id),))
+        lencards = fetchoneClean(self.cur)[0]
+        full_json['cards'] = {
+            'average': str(average_sort) + '%',
+            'total': lencards,
+            'sorted': int(total * average_sort * (1 / 100)),
+            'data': cards
         }
 
         # Calculate categories data
+        self.cur.execute("""SELECT DISTINCT CATS.CATEGORY_NAME, CATS.FREQUENCY, CAR.CARD_NAME, CC.FREQUENCY
+                            FROM CATEGORIES CATS
+                            LEFT JOIN CARDS_CATEGORIES CC
+                            ON CATS.ID = CC.CATEGORY_ID
+                            LEFT JOIN CARDS CAR
+                            ON CAR.ID = CC.CARD_ID
+                            WHERE CATS.STUDY_ID = %s""", (str(study_id),))
+        cont = DataFrame(fetchallClean(self.cur), columns=['cat_name', 'cat_freq', 'card_name', 'card_freq'])
+        cats = cont.groupby(['cat_name', 'cat_freq']).agg({'card_name': ['nunique', 'unique'], 'card_freq': list}).reset_index()
+        tot = cats.cat_name.agg('nunique')
+        # reorder
+        cats.columns = [' '.join(col).strip() for col in cats.columns.values]
+        cats = cats[['cat_name', 'card_name nunique', 'card_name unique', 'cat_freq', 'card_freq list']]
+        # some things get returned as numpy ndarrays so the code below changes ndarrays to lists
+        cats = [[i.tolist() if isinstance(i, ndarray) else i for i in j] for j in cats.values.tolist()]
 
-        # Make the json array specified
-        # data: 0: category name 1: cards no 2: cards 3: frequency 4: participants
-        
-        study_categories = study['categories']
-        categories = []
-       
-        for category_name in study['categories']:
-            category = study['categories'][category_name]
-            categories.append([category_name, len(category['cards']), category['cards'],
-                               category['frequencies'], category['participants']])
 
-        study['categories'] = {
-
+        full_json['categories'] = {
             'similarity': '0%',
             'total': int(tot),
             'similar': 0,
@@ -174,45 +163,10 @@ class Study:
             'data': cats,
         }
 
-        print("total participants: ", total)
-        participants = []
-        no = 1
-        for participant_id in study_participants:
-            participant = list(self.participants.find({'_id': participant_id}, {'_id': 0}))[0]
-            
-            # Extract categories and cards for the participant
-            comment = participant['comment']
-            for category_data in participant['categories'].items():
-              
-                category_name = category_data[1]['title']
-                cardsid = category_data[1]['cards']
-                cards = []
-                for id in cardsid:
-                   cards.append(study_cards[str(id)]['name'])
-                participant_data = {
-                    'no': f'#{no}',
-                    'category': category_name,
-                    'cards': cards,
-                    'comment': comment,
-                }
-                comment = ''
-                participants.append(participant_data)
+        full_json['similarityMatrix'] = self._convert_similarity_matrix(study_id, self.cur)
 
-            no += 1
+        return full_json
 
-        # Assign the 'participants' array to your 'study' object
-        study['sorting'] = {
-            'data': participants,
-        }
-        return study
-
-    def get_title_description(self, study_id):
-        study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
-        return {
-            'title': study['title'],
-            'description': study['description'],
-        }
-    
     @staticmethod
     def _convert_similarity_matrix(study_id, curr):
         """
@@ -252,67 +206,22 @@ class Study:
         if len(study) == 0 or not study[0][0]:
             return {'message': 'STUDY NOT FOUND'}
 
-        cards = []
-        for card in study['cards'].values():
-            cards.append(card)
-        return cards
-    
-    def get_thanks_message_and_link(self, study_id):
+        lod = []
+        for i in range(len(study)):
+            lod.append({
+                    'name': study[i][1].strip(),
+                    'description': study[i][2].strip(),
+                    'id': study[i][3],
+            })
+        return lod
 
-        return     list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0],list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
+    def get_thanks_message(self, study_id):
+        self.cur.execute("""SELECT MESSAGE_TEXT FROM STUDY WHERE ID=%s""", (str(study_id),))
+        message = fetchoneClean(self.cur)
+        return message
 
-
-
-    # def get_link(self, study_id):
-    #     link = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
-    #     return link
-    
     def get_clusters(self, study_id, user_id):
         self.cur.execute("""SELECT TITLE FROM STUDY WHERE ID=%s AND USER_ID=%s""", (str(study_id), str(user_id)))
         if not fetchoneClean(self.cur):
             return {'message': 'INVALID STUDY'}
         return calculate_clusters(study_id)
-
-    def _post_study(self, study):
-        item = self.studies.insert_one(study)
-        self.study_id = ObjectId(item.inserted_id)
-
-    def update_study(self, study_id,editDate,endDate=None, title=None, is_live=None,description=None):
-            """
-            Update a study's title or isLive status.
-            :param study_id: ID of the study to update
-            :param title: New title (optional)
-            :param is_live: New isLive status (optional)
-            """
-            update_data = {}
-            
-            if title is not None:
-                update_data['title'] = title
-            
-            if is_live is not None:
-                update_data['isLive'] = is_live
-            if description is not None:
-                update_data['description'] = description
-
-            if update_data:  
-                result = self.studies.update_one({'_id': ObjectId(study_id)},{'$set': {'endDate': endDate,'editDate':editDate,**update_data}})
-                
-                if result.modified_count > 0:
-                    return True
-            
-            return False
-    def delete_study(self, study_id):
-        """
-        Delete a study from the database.
-        :param study_id: ID of the study to delete
-        :return: True if deleted successfully, False otherwise
-        """
-        # First, delete the study from the studies collection
-        result = self.studies.delete_one({'_id': ObjectId(study_id)})
-        if result.deleted_count > 0:
-            # Remove the study from users' study lists
-            self.users.update_many({}, {'$pull': {'studies': ObjectId(study_id)}})
-            return True
-        
-        return False 
-
