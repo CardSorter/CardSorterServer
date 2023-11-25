@@ -17,7 +17,7 @@ class Study:
             self.participants = get_db()['participants']
         self.study_id = 0
 
-    def create_study(self, title, description, cards, message, user_id):
+    def create_study(self, title, description, cards, message, link, user_id):
         date = datetime.datetime.utcnow()
 
         # Remove undefined cards
@@ -33,6 +33,7 @@ class Study:
             'description': description,
             'cards': sanitized_cards,
             'message': message,
+            'link':link,
             'abandonedNo': 0,
             'completedNo': 0,
             'editDate': date,
@@ -86,6 +87,8 @@ class Study:
 
         # Make the json array specified
         # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
+        study_participants = study['participants']
+        
         participants = []
         no = 1
         try:
@@ -110,11 +113,11 @@ class Study:
             }
 
         total = len(study['participants'])
-
         # Return no participants json
         if total == 0:
             return {
                 'title': study['title'],
+                'description': study['description'],
                 'isLive': study['isLive'],
                 'launchedDate': study['launchedDate'],
                 'participants': 0,
@@ -135,6 +138,7 @@ class Study:
         # Make the json array specified
         # data: 0: card_name 1: categories_no 2: categories names 3: frequency
         cards = []
+        study_cards = study['cards']
         for card_id in study['cards']:
             card = study['cards'][card_id]
             try:
@@ -145,8 +149,12 @@ class Study:
                 frequencies = study['cards'][card_id]['frequencies']
             except KeyError:
                 frequencies = []
+            try:
+                description = study['cards'][card_id]['description']
+            except KeyError:
+                description = []
             categories_no = len(categories)
-            cards.append([card['name'], categories_no, categories, frequencies])
+            cards.append([card['name'], categories_no, categories, frequencies,description])
 
         study['cards'] = {
             'average': str(study['stats']['average_sort']) + '%',
@@ -159,7 +167,10 @@ class Study:
 
         # Make the json array specified
         # data: 0: category name 1: cards no 2: cards 3: frequency 4: participants
+        
+        study_categories = study['categories']
         categories = []
+       
         for category_name in study['categories']:
             category = study['categories'][category_name]
             categories.append([category_name, len(category['cards']), category['cards'],
@@ -174,8 +185,45 @@ class Study:
         }
         study['similarityMatrix'] = self._convert_similarity_matrix(study)
 
+        print("total participants: ", total)
+        participants = []
+        no = 1
+        for participant_id in study_participants:
+            participant = list(self.participants.find({'_id': participant_id}, {'_id': 0}))[0]
+            
+            # Extract categories and cards for the participant
+            comment = participant['comment']
+            for category_data in participant['categories'].items():
+              
+                category_name = category_data[1]['title']
+                cardsid = category_data[1]['cards']
+                cards = []
+                for id in cardsid:
+                   cards.append(study_cards[str(id)]['name'])
+                participant_data = {
+                    'no': f'#{no}',
+                    'category': category_name,
+                    'cards': cards,
+                    'comment': comment,
+                }
+                comment = ''
+                participants.append(participant_data)
+
+            no += 1
+
+        # Assign the 'participants' array to your 'study' object
+        study['sorting'] = {
+            'data': participants,
+        }
         return study
 
+    def get_title_description(self, study_id):
+        study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
+        return {
+            'title': study['title'],
+            'description': study['description'],
+        }
+    
     @staticmethod
     def _convert_similarity_matrix(study):
         """
@@ -210,11 +258,17 @@ class Study:
         for card in study['cards'].values():
             cards.append(card)
         return cards
+    
+    def get_thanks_message_and_link(self, study_id):
 
-    def get_thanks_message(self, study_id):
-        message = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0]
-        return message
+        return     list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'message': 1}))[0],list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
 
+        
+
+    # def get_link(self, study_id):
+    #     link = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'link': 1}))[0]
+    #     return link
+    
     def get_clusters(self, study_id, user_id):
         # Check if the study belongs to the user
         available_studies = list(self.users.find({'_id': ObjectId(user_id)}, {'_id': 0, 'studies': 1}))[0]['studies']
@@ -227,3 +281,42 @@ class Study:
     def _post_study(self, study):
         item = self.studies.insert_one(study)
         self.study_id = ObjectId(item.inserted_id)
+
+    def update_study(self, study_id,editDate,endDate=None, title=None, is_live=None,description=None):
+            """
+            Update a study's title or isLive status.
+            :param study_id: ID of the study to update
+            :param title: New title (optional)
+            :param is_live: New isLive status (optional)
+            """
+            update_data = {}
+            
+            if title is not None:
+                update_data['title'] = title
+            
+            if is_live is not None:
+                update_data['isLive'] = is_live
+            if description is not None:
+                update_data['description'] = description
+
+            if update_data:  
+                result = self.studies.update_one({'_id': ObjectId(study_id)},{'$set': {'endDate': endDate,'editDate':editDate,**update_data}})
+                
+                if result.modified_count > 0:
+                    return True
+            
+            return False
+    def delete_study(self, study_id):
+        """
+        Delete a study from the database.
+        :param study_id: ID of the study to delete
+        :return: True if deleted successfully, False otherwise
+        """
+        # First, delete the study from the studies collection
+        result = self.studies.delete_one({'_id': ObjectId(study_id)})
+        if result.deleted_count > 0:
+            # Remove the study from users' study lists
+            self.users.update_many({}, {'$pull': {'studies': ObjectId(study_id)}})
+            return True
+        
+        return False 

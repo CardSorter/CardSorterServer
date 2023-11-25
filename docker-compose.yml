@@ -23,5 +23,6 @@ services:
       environment:
         ME_CONFIG_MONGODB_ADMINUSERNAME: "rest_api"
         ME_CONFIG_MONGODB_ADMINPASSWORD: "password"
+        ME_CONFIG_MONGODB_SERVER: "mongo:27017"
       depends_on:
         - mongo

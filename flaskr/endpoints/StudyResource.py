@@ -72,10 +72,13 @@ class StudyResource(Resource):
 
         if not user_id or isinstance(user_id, dict):
             return make_response(jsonify(location=Config.url+'auth/'), 401)
-
+        
         req = request.json
         study = Study()
-        error = study.create_study(req['title'], req['description'], req['cards'], req['message'], user_id)
+        if 'link' in req:
+            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], req['link'],user_id)
+        else:
+            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], 'undefined',user_id)
         date = datetime.datetime.now().isoformat()
 
         if error:
@@ -95,3 +98,58 @@ class StudyResource(Resource):
         }
 
         return jsonify(study=res)
+    
+    def put(self):
+        """
+        Edits a study by changing the title or isLive status.
+        Request body should contain JSON with 'id', 'title', and/or 'isLive'.
+        """
+        # Check authentication
+        auth_header = request.headers.get('Authorization')
+        user_id = User.validate_request(auth_header)
+        if not user_id or isinstance(user_id, dict):
+            return make_response(jsonify(location=Config.url+'auth/'), 401)
+              
+        
+        study_id = request.args.get('id')  # Get the study ID from the request
+        study = Study()
+        
+        req = request.json
+        updated_properties = {}
+        if 'title' in req:
+            updated_properties['title'] = req['title']
+
+        if 'isLive' in req:
+            updated_properties['is_live'] = req['isLive']
+        
+        if req['isLive'] == False:
+            updated_properties['endDate'] = datetime.datetime.now().isoformat();
+        if 'description' in req:
+            updated_properties['description'] = req['description']
+       
+        editDate = datetime.datetime.now().isoformat();
+        if updated_properties:
+            if study.update_study(study_id,editDate, **updated_properties):
+                return '',200    
+        else:
+            return '', 400
+        
+    def delete(self):
+        """
+        Deletes a study based on the provided study ID.
+        The study ID is passed as a parameter in the request.
+        """
+        # Check authentication
+        auth_header = request.headers.get('Authorization')
+        user_id = User.validate_request(auth_header)
+        if not user_id or isinstance(user_id, dict):
+            return make_response(jsonify(location=Config.url+'auth/'), 401)
+        
+        study_id = request.args.get('id')  # Get the study ID from the request
+        study = Study()
+
+        if study.delete_study(study_id):
+            return '', 204  # Successfully deleted
+        else:
+            return '', 500  # Internal server error during deletion
+
