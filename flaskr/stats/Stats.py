@@ -66,6 +66,7 @@ def calculate_clusters(study_id):
     study = fetchoneClean(cur)
     clusters_calculating = study[4]
     clusters_changed = study[5]
+
     if clusters_changed:
         if clusters_calculating:
             return {'message': 'calculating'}
@@ -95,7 +96,7 @@ def calculate_clusters(study_id):
         cur.execute("""UPDATE STATS SET CLUSTERS_CHANGED = FALSE WHERE STUDY_ID = %s""", (str(study_id),))
         conn.commit()
     else:
-        dendro = study[6]
+        dendro = json.loads(study[6])
 
     return dendro
 

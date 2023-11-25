@@ -28,7 +28,6 @@ class CardSorterResource(Resource):
                 return make_response(jsonify(error=cards), 404)
 
             return jsonify(cards=cards)
-        return make_response(jsonify(error={'message': 'Cards argument must be defined'}), 404)
 
     def post(self):
         """

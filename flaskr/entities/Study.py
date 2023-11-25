@@ -202,6 +202,7 @@ class Study:
                              ON S.ID = C.STUDY_ID
                              WHERE S.ID=%s""", (str(study_id),))
         study = fetchallClean(self.cur)
+        print(study)
 
         if len(study) == 0 or not study[0][0]:
             return {'message': 'STUDY NOT FOUND'}

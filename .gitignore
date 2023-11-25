@@ -4,4 +4,3 @@ venv/
 */**/.vscode
 mongodata/
 db_data/
-mprototypes/
