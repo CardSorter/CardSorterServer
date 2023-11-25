@@ -40,9 +40,9 @@ class CardSorterResource(Resource):
         """
         study_id = request.json['studyID']
         categories = request.json['categories']
-        non_sorted = request.json['notSorted']
+        non_sorted = request.json['container']
         try:
-            time = request.json['time']
+            time = convert_to_date(request.json['time'])
         except KeyError:
             time = 'N/A'
 
@@ -73,21 +73,19 @@ def get_id(req):
     return req.args.get('study_id')
 
 
-# def convert_to_date(ms):
-# from datetime import timedelta
-# return str(timedelta(milliseconds=ms))
-#     millis = ms
-#     seconds = (millis / 1000) % 60
-#     seconds = int(seconds)
-#     minutes = (millis / (1000 * 60)) % 60
-#     minutes = int(minutes)
-#     hours = (millis / (1000 * 60 * 60)) % 24
-#     hours = int(hours)
-#
-#     time = ''
-#     if hours > 0:
-#         time += str(hours) + ' h '
-#     if minutes > 0:
-#         time += str(minutes) + ' m '
-#     time += str(seconds) + ' s'
-#     return time
+def convert_to_date(ms):
+    millis = ms
+    seconds = (millis / 1000) % 60
+    seconds = int(seconds)
+    minutes = (millis / (1000 * 60)) % 60
+    minutes = int(minutes)
+    hours = (millis / (1000 * 60 * 60)) % 24
+    hours = int(hours)
+
+    time = ''
+    if hours > 0:
+        time += str(hours) + ' h '
+    if minutes > 0:
+        time += str(minutes) + ' m '
+    time += str(seconds) + ' s'
+    return time

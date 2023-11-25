@@ -49,6 +49,7 @@ class StudyResource(Resource):
             if request.args.get('clusters'):
                 return jsonify(clusters=
                                study.get_clusters((request.args.get('id')), user_id))
+
             return jsonify(study=
                            study.get_study((request.args.get('id')), user_id))
 
