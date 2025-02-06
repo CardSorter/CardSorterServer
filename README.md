@@ -8,7 +8,7 @@ The full paper that was based on this tool can be found on the ACM's directory.
 ### Prerequisites
 1. Python 3 \w pip
 2. Docker and docker-compose
-3. (Optionally) a unix-based or bashed enabled system 
+3. (Optionally) a unix-based or bash enabled system 
 
 
 ### Running the development
