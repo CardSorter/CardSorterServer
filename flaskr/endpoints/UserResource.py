@@ -45,7 +45,7 @@ class UserResource(Resource):
 
             resp = make_response(jsonify({
                 'location': Config.url,
-                'auth_token':  user.auth_token.decode()
+                'auth_token':  user.auth_token
             }))
 
         else:  # Login
@@ -59,7 +59,7 @@ class UserResource(Resource):
 
             resp = make_response(jsonify({
                 'location': Config.url,
-                'auth_token':  user.auth_token.decode()
+                'auth_token':  user.auth_token
             }))
 
         return resp

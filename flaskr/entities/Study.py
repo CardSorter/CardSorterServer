@@ -64,7 +64,6 @@ class Study:
             if len(study) > 0:
                 study = study[0]
             else:
-                print('Study not found:', study_id)
                 continue
             study['id'] = str(study['_id'])
             study['_id'] = None
@@ -185,7 +184,6 @@ class Study:
         }
         study['similarityMatrix'] = self._convert_similarity_matrix(study)
 
-        print("total participants: ", total)
         participants = []
         no = 1
         for participant_id in study_participants:
