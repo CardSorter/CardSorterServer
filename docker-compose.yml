@@ -1,11 +1,11 @@
-version: '3'
+version: '3.8'
 services:
     mongo:
-        image: mongo:4.4
+        image: mongo:latest
         container_name: card_sorter_mongodbdev
         restart: "no"
         ports:
-            - 27017:27017
+            - "27017:27017"
         environment:
           MONGO_INITDB_ROOT_USERNAME: "rest_api"
           MONGO_INITDB_ROOT_PASSWORD: "password"
@@ -16,13 +16,14 @@ services:
             - ./mongodata:/data/db
 
     mongo-express:
-      image: mongo-express
+      image: mongo-express:latest
       restart: "no"
       ports:
-        - 8081:8081
+        - "8081:8081"
       environment:
         ME_CONFIG_MONGODB_ADMINUSERNAME: "rest_api"
         ME_CONFIG_MONGODB_ADMINPASSWORD: "password"
-        ME_CONFIG_MONGODB_SERVER: "mongo:27017"
+        ME_CONFIG_MONGODB_SERVER: "card_sorter_mongodbdev"
+        ME_CONFIG_MONGODB_URL: "card_sorter_mongodbdev://card_sorter_mongodbdev:27017"
       depends_on:
         - mongo

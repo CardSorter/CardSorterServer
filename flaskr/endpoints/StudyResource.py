@@ -122,14 +122,14 @@ class StudyResource(Resource):
         if 'isLive' in req:
             updated_properties['is_live'] = req['isLive']
         
-        if req['isLive'] == False:
-            updated_properties['endDate'] = datetime.datetime.now().isoformat();
+        if not req['isLive']:
+            updated_properties['endDate'] = datetime.datetime.now().isoformat()
         if 'description' in req:
             updated_properties['description'] = req['description']
        
-        editDate = datetime.datetime.now().isoformat();
+        edit_date = datetime.datetime.now().isoformat()
         if updated_properties:
-            if study.update_study(study_id,editDate, **updated_properties):
+            if study.update_study(study_id,edit_date, **updated_properties):
                 return '',200    
         else:
             return '', 400

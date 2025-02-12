@@ -160,7 +160,7 @@ def build_similarity_matrix(study_id):
         siblings += 1
         i += 1
 
-    studies.update({'_id': ObjectId(study_id)}, {'$set': {
+    studies.update_one({'_id': ObjectId(study_id)}, {'$set': {
         'stats.clusters': {},
         'stats.clusters_changed': False,
         'stats.clusters_calculating': False,
