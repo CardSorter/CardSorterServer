@@ -6,7 +6,7 @@ Flask==3.1.0
 Flask-Cors==5.0.0
 Flask-RESTful==0.3.10
 itsdangerous==2.2.0
-Jinja2==3.1.5
+Jinja2==3.1.6
 MarkupSafe==3.0.2
 numpy==2.2.2
 passlib==1.7.4

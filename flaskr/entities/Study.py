@@ -1,5 +1,6 @@
 import datetime
 
+import bson
 from bson import ObjectId
 from flask import current_app
 from math import ceil
@@ -82,60 +83,12 @@ class Study:
         study['_id'] = None
 
         # Make full json structure
-        # Calculate participants data
-
-        # Make the json array specified
-        # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
-        study_participants = study['participants']
-        
-        participants = []
-        no = 1
-        try:
-            for participant_id in study['participants']:
-                participant = list(self.participants.find({'_id': participant_id},
-                                                          {'_id': 0}))[0]
-                try:
-                    time = participant['time']
-                except KeyError:
-                    time = 'N/A'
-
-                participants.append(['#' + str(no), time, str(participant['cards_sorted']) + '%'
-                                    , participant['categories_no']])
-                no += 1
-        except KeyError:
-            return {
-                'title': study['title'],
-                'isLive': study['isLive'],
-                'launchedDate': study['launchedDate'],
-                'participants': 0,
-                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
-            }
-
-        total = len(study['participants'])
-        # Return no participants json
-        if total == 0:
-            return {
-                'title': study['title'],
-                'description': study['description'],
-                'isLive': study['isLive'],
-                'launchedDate': study['launchedDate'],
-                'participants': 0,
-                'shareUrl': Config.url + '/sort/' + '?id=' + str(study['id'])
-            }
-
-        study['shareUrl'] = Config.url + '/sort/' + '?id=' + str(study['id'])
-
-        study['participants'] = {
-            'completion': study['stats']['completion'],
-            'total': total,
-            'completed': study['completedNo'],
-            'data': participants
-        }
+        total_participants = len(study['participants'])
 
         # Calculate cards data
 
         # Make the json array specified
-        # data: 0: card_name 1: categories_no 2: categories names 3: frequency
+        # data: 0: card_name 1: categories_no 2: categories names 3: frequency 4: description
         cards = []
         study_cards = study['cards']
         for card_id in study['cards']:
@@ -151,15 +104,72 @@ class Study:
             try:
                 description = study['cards'][card_id]['description']
             except KeyError:
-                description = []
+                description = ""
             categories_no = len(categories)
-            cards.append([card['name'], categories_no, categories, frequencies,description])
+            cards.append({
+                "name": card['name'],
+                "categories_no": categories_no,
+                "category_names": categories,
+                "frequencies": frequencies,
+                "description": description,
+            })
 
         study['cards'] = {
-            'average': str(study['stats']['average_sort']) + '%',
+            'average': str(study['stats']['average_sort']) + '%' if total_participants > 0 else 'N/A',
             'total': len(study['cards']),
-            'sorted': int(total * study['stats']['average_sort'] * (1 / 100)),
+            'sorted': int(total_participants * study['stats']['average_sort'] * (1 / 100)) if total_participants > 0 else 0,
             'data': cards,
+        }
+
+        # Default return if no participants in study
+        # Make the json array specified
+
+        # Return no participants json
+        if total_participants == 0:
+            return {
+                'title': study['title'],
+                'description': study['description'],
+                'isLive': study['isLive'],
+                'launchedDate': study['launchedDate'],
+                'participants': 0,
+                'cards': study['cards'],
+            }
+
+        # Calculate participants data
+
+        # TODO: Replace returns of data from array to Dictionaries
+        # data: 0: participant_no id 1: time taken 2: cards sorted 3: categories created
+        study_participants = study['participants']
+
+        participants = []
+        no = 1
+        try:
+            for participant_id in study['participants']:
+                participant = list(self.participants.find({'_id': participant_id},
+                                                          {'_id': 0}))[0]
+                try:
+                    time = participant['time']
+                except KeyError:
+                    time = 'N/A'
+
+                participants.append(['#' + str(no), time, str(participant['cards_sorted']) + '%'
+                                        , participant['categories_no']])
+                no += 1
+        except KeyError:
+            return {
+                'title': study['title'],
+                'description': study['description'],
+                'isLive': study['isLive'],
+                'launchedDate': study['launchedDate'],
+                'participants': 0,
+                'cards': study['cards'],
+            }
+
+        study['participants'] = {
+            'completion': study['stats']['completion'],
+            'total': total_participants,
+            'completed': study['completedNo'],
+            'data': participants
         }
 
         # Calculate categories data
@@ -216,7 +226,11 @@ class Study:
         return study
 
     def get_title_description(self, study_id):
-        study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
+        try:
+            study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
+        except bson.errors.InvalidId:
+            return {'message': 'STUDY NOT FOUND'}
+
         return {
             'title': study['title'],
             'description': study['description'],
@@ -246,7 +260,10 @@ class Study:
         return similarity_matrix
 
     def get_cards(self, study_id):
-        study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1, 'isLive': 1}))
+        try:
+            study = list(self.studies.find({'_id': ObjectId(study_id)}, {'_id': 0, 'cards': 1, 'isLive': 1}))
+        except bson.errors.InvalidId:
+            return {'message': 'STUDY NOT FOUND'}
 
         if len(study) == 0 or not study[0]['isLive']:
             return {'message': 'STUDY NOT FOUND'}
