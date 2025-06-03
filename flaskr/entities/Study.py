@@ -18,9 +18,8 @@ class Study:
             self.participants = get_db()['participants']
         self.study_id = 0
 
-    def create_study(self, title, description, cards, message, link, user_id):
+    def create_study(self, title, description, cards, message, link, user_id,sort_type="open",categories=None):
         date = datetime.datetime.utcnow()
-
         # Remove undefined cards
         sanitized_cards = cards.copy()
         for card_id in cards:
@@ -41,7 +40,11 @@ class Study:
             'isLive': True,
             'launchedDate': date,
             'participants': [],
+            'sortType': sort_type,
+
         }
+        if sort_type in ["closed","hybrid"] and categories:
+            study['categories']= categories
         self._post_study(study)
 
         # Create the appropriate fields
@@ -115,7 +118,7 @@ class Study:
             })
 
         study['cards'] = {
-            'average': str(study['stats']['average_sort']) + '%' if total_participants > 0 else 'N/A',
+            'average': str(study.get('stats', {}).get('average_sort', 0)) + '%' if total_participants > 0 else 'N/A',
             'total': len(study['cards']),
             'sorted': int(total_participants * study['stats']['average_sort'] * (1 / 100)) if total_participants > 0 else 0,
             'data': cards,
@@ -126,14 +129,19 @@ class Study:
 
         # Return no participants json
         if total_participants == 0:
-            return {
+            response= {
                 'title': study['title'],
                 'description': study['description'],
                 'isLive': study['isLive'],
                 'launchedDate': study['launchedDate'],
                 'participants': 0,
                 'cards': study['cards'],
+                'sortType': study.get('sortType', 'open'),
             }
+            if study.get('sortType') in ['closed', 'hybrid']:
+               response['categories'] = study.get('categories', {})
+            return response
+        
 
         # Calculate participants data
 
@@ -180,10 +188,18 @@ class Study:
         study_categories = study['categories']
         categories = []
        
-        for category_name in study['categories']:
-            category = study['categories'][category_name]
-            categories.append([category_name, len(category['cards']), category['cards'],
-                               category['frequencies'], category['participants']])
+        for category_name, category in study['categories'].items():
+         
+          if not isinstance(category, dict):
+             continue
+          categories.append([
+             category_name,
+             len(category.get('cards', [])),
+             category.get('cards', []),
+             category.get('frequencies', []),
+             category.get('participants', 0)
+          ])
+
 
         study['categories'] = {
             'similarity': '0%',
