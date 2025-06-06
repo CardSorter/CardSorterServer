@@ -12,8 +12,8 @@ def get_db():
         db_database = os.environ.get('MONGODB_DATABASE', 'card_sorter')
 
         if os.environ.get('MONGODB_USERNAME'):
-           mongoURI = f"mongodb://{db_username}:{db_password}@{db_host}:27017/"
-           conn = MongoClient(mongoURI, authSource='admin')
+           mongoURI = f"mongodb://{db_username}:{db_password}@{db_host}:27017/{db_database}"
+           conn = MongoClient(mongoURI)
         else:
             # Do not authenticate over a db for development
             mongoURI = 'mongodb://' + db_username + ':' + db_password + '@' + db_host + ':27017/'
