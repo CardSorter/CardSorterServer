@@ -13,7 +13,6 @@ def get_db():
 
         if os.environ.get('MONGODB_USERNAME'):
            mongoURI = f"mongodb://{db_username}:{db_password}@{db_host}:27017/"
-           print(f"Connecting to MongoDB at: {mongoURI} (authSource='admin')")
            conn = MongoClient(mongoURI, authSource='admin')
         else:
             # Do not authenticate over a db for development

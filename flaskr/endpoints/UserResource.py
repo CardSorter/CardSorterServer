@@ -114,7 +114,7 @@ class UserResource(Resource):
          updated_properties['email'] = req['newEmail']
 
        if 'newPassword' in req and req['newPassword'].strip():
-         updated_properties['password'] = pwd_context.encrypt(req['newPassword'])
+         updated_properties['password'] = User._hash_password(req['newPassword'])
 
        edit_date = datetime.datetime.now().isoformat()
 
