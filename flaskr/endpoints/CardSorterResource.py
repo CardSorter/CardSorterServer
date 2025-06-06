@@ -4,6 +4,7 @@ from flask_restful import Resource
 from flaskr.entities.Study import Study
 from flaskr.entities.Participant import Participant
 from flaskr.stats.Stats import update_stats
+from bson import ObjectId
 
 
 class CardSorterResource(Resource):
@@ -11,34 +12,68 @@ class CardSorterResource(Resource):
         """
         Sends the details used for the card sort of a study, title and description.
         There is one *error* that is returned:
-            -STUDY NOT FOUND
+            - STUDY NOT FOUND
         Default case:
-            The id must be passed as a parameter, the cards parameter must be true.
+            The ID must be passed as a parameter, and the 'cards' parameter must be true.
             Returns the cards of the study.
         """
-        study_id = get_id(request)
-        if isinstance(study_id, dict) and study_id['error']:
-            return make_response(jsonify(error={'message': 'STUDY NOT FOUND'}), 404)
 
+        # Get and validate the study ID
+        study_id = get_id(request)
+        if isinstance(study_id, dict) and study_id.get('error'):
+            return {'error': 'STUDY NOT FOUND'}, 404
+
+        # Convert to ObjectId for MongoDB query
+        try:
+            study_id = ObjectId(study_id)
+        except Exception:
+            return {'error': 'Invalid study ID'}, 400
+
+        # Handle ?cards=true parameter
         if request.args.get('cards'):
             study = Study()
             cards = study.get_cards(study_id)
             title_desc = study.get_title_description(study_id)
 
-            # Return error if a message was sent instead of an array
-            if isinstance(cards, dict) and cards['message']:
-                return make_response(jsonify(error=cards), 404)
+            if isinstance(cards, dict) and cards.get('message'):
+                return {'error': cards['message']}, 404
 
-            # Extract the relevant fields for the sorting
+            # Clean and structure card data
             cards_return = []
             for card in cards:
-                description = ""
-                if 'description' in card:
-                    description = card['description']
+                cards_return.append({
+                    'id': card['id'],
+                    'name': card['name'],
+                    'description': card.get('description', '')
+                })
 
-                cards_return.append({'id': card['id'], 'name': card['name'], 'description': description})
+            # Find the study document
+            studydocument = study.studies.find_one({'_id': study_id})
+            if not studydocument:
+                return {'error': 'Study not found'}, 404
 
-            return jsonify(cards=cards_return,title=title_desc['title'],description=title_desc['description'])
+            # Get sort type and build response
+            sort_type = studydocument.get('sortType', 'open')
+
+            result = {
+                'cards': cards_return,
+                'title': title_desc['title'],
+                'description': title_desc['description'],
+                'sortType': sort_type
+            }
+
+            # Include predefined categories if closed/hybrid
+            if sort_type in ['closed', 'hybrid']:
+                result['categories'] = studydocument.get('categories', {})
+
+            print("Returning result:", result)
+
+            return result, 200
+
+        # If 'cards' parameter is missing or invalid
+        return {'error': 'Missing or invalid parameters'}
+
+
 
     def post(self):
         """
@@ -52,6 +87,7 @@ class CardSorterResource(Resource):
         study_id = request.json['studyID']
         categories = request.json['categories']
         non_sorted = request.json['container']
+        new_categories=request.json.get('newCategories', {})  # hybrid sort type
         try:
             time = convert_to_date(request.json['time'])
         except KeyError:
@@ -64,7 +100,9 @@ class CardSorterResource(Resource):
 
         participant = Participant()
 
-        error = participant.post_categorization(study_id, categories, non_sorted, time, comment)
+        # This is if sort_type=hybrid and create new_categories
+
+        error = participant.post_categorization(study_id, categories, non_sorted, time, comment,new_categories=new_categories)
 
         if error:
             return jsonify(error=error)

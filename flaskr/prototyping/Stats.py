@@ -36,6 +36,7 @@ def update_stats(study_id):
 
 
 def update_card_stats(study_id, new_participant_id):
+    
     studies = get_db()['studies']
     participants = get_db()['participants']
 

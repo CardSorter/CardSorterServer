@@ -75,16 +75,18 @@ class StudyResource(Resource):
         
         req = request.json
         study = Study()
+        sort_type = req.get('sortType', 'open')
+        categories = req.get('categories', {})
         if 'link' in req:
-            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], req['link'],user_id)
+            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], req['link'],user_id,sort_type, categories)
         else:
-            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], 'undefined',user_id)
+            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], 'undefined',user_id,sort_type, categories)
         date = datetime.datetime.now().isoformat()
 
         if error:
             return jsonify(error=error)
 
-        # Create the response
+        
         res = {
             'id': str(study.study_id),
             'title': req['title'],
@@ -109,7 +111,7 @@ class StudyResource(Resource):
             return make_response(jsonify(location=Config.url+'auth/'), 401)
               
         
-        study_id = request.args.get('id')  # Get the study ID from the request
+        study_id = request.args.get('id')  
         study = Study()
         
         req = request.json
