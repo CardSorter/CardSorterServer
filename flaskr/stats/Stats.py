@@ -95,6 +95,7 @@ def update_categories_stats(study_id, new_participant_id):
     for category_id in participant['categories']:
         try:
             category_name = participant['categories'][category_id]['title']
+            normalized_title = category_name.strip().lower()
         except KeyError:
             category_name = 'not set'
 
@@ -105,24 +106,25 @@ def update_categories_stats(study_id, new_participant_id):
             study_categories = {}
 
         # Create different not set categories
-        if category_name == 'not set':
+        if normalized_title == 'not set':
             unique = False
             i = 0
             while not unique:
                 name = 'not set #' + str(i)
                 if name not in study_categories:
+                    normalized_title = name.lower()
                     category_name = name
                     unique = True
                 i += 1
 
-        categories_category = 'categories.' + str(category_name)
+        categories_category = 'categories.' + normalized_title
         for card_id in participant['categories'][category_id]['cards']:
             card_name = study['cards'][str(card_id)]['name']
 
             found = False
             card_no = 0
             try:
-                for study_card in study_categories[category_name]['cards']:
+                for study_card in study_categories.get(normalized_title, {}).get('cards', []):
                     if card_name == study_card:
                         found = True
                         break
@@ -137,7 +139,7 @@ def update_categories_stats(study_id, new_participant_id):
                 studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.frequencies.'
                                                                           + str(card_no): 1}})
 
-        studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.participants': 1}})
+        #studies.update_one({'_id': ObjectId(study_id)}, {'$inc': {categories_category + '.participants': 1}})
 
 
 def build_similarity_matrix(study_id):
