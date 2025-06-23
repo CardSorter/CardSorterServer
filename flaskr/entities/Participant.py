@@ -79,6 +79,12 @@ class Participant:
             k for k in card['card_category_keys']
             if not k.startswith(str(self.participant_id))
         ]
+      predefined_titles = set()
+
+      # This assumes predefined category titles are in study[0]['categories']
+      for key, val in study[0]['categories'].items():
+        if isinstance(val, str):  
+         predefined_titles.add(val.strip().lower())
 
 
     # Aggregate participant result into study-level categories/cards
@@ -86,7 +92,9 @@ class Participant:
         card_ids = cat_data['cards']
         title = cat_data['title']
         normalized_title=title.strip().lower()
-        
+       
+
+  
 
         # Categories
         if normalized_title not in categories_stats:
@@ -96,7 +104,8 @@ class Participant:
                 'participants': 0,
                 'participant_ids': [],
                 'category_participant_keys': [],
-                'display_title': title
+                'display_title': title,
+                'predefined': normalized_title in predefined_titles
             }
         # if some key doesnt exist at the moment create with default value(filling missing category fields)
         cat_stat = categories_stats[normalized_title]
@@ -106,6 +115,7 @@ class Participant:
         cat_stat.setdefault('participant_ids', [])
         cat_stat.setdefault('category_participant_keys', [])
         cat_stat.setdefault('display_title', title)
+        cat_stat.setdefault('predefined', normalized_title in predefined_titles)
 
             
         participant_ids = set(categories_stats[normalized_title].get('participant_ids', []))
