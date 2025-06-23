@@ -2,8 +2,8 @@ aniso8601==10.0.0
 blinker==1.9.0
 click==8.1.8
 dnspython==2.7.0
-Flask==3.1.0
-Flask-Cors==5.0.0
+Flask==3.1.1
+Flask-Cors==6.0.0
 Flask-RESTful==0.3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
