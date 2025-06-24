@@ -193,11 +193,12 @@ class Study:
           if not isinstance(category, dict):
              continue
           categories.append([
-             category_name,
+             category_name, 
              len(category.get('cards', [])),
              category.get('cards', []),
              category.get('frequencies', []),
-             category.get('participants', 0)
+             category.get('participants', 0),
+             1 if category.get('predefined') else 0,      #check if there are any predefined categories 
           ])
 
 
