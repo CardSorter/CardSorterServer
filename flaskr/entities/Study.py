@@ -198,7 +198,7 @@ class Study:
              category.get('cards', []),
              category.get('frequencies', []),
              category.get('participants', 0),
-             1 if category.get('predefined') else 0,      #check if there are predefined categories
+             1 if category.get('predefined') else 0,      #check if there are any predefined categories 
           ])
 
 
