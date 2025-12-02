@@ -1,0 +1,9 @@
+Flask>=3.1.1
+Flask-Cors>=6.0.0
+Flask-RESTful>=0.3.10
+numpy>=2.2.2
+passlib>=1.7.4
+PyJWT>=2.10.1
+psycopg2-binary>=2.9.10
+pymongo>=4.11
+scipy>=1.15.1
