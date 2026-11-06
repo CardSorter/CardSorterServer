@@ -18,7 +18,8 @@ class Study:
             self.participants = get_db()['participants']
         self.study_id = 0
 
-    def create_study(self, title, description, cards, message, link, user_id,sort_type="open",categories=None):
+    def create_study(self, title, description, cards, message, link, user_id,sort_type="open",categories=None,
+                     require_comment=False):
         date = datetime.datetime.utcnow()
         # Remove undefined cards
         sanitized_cards = cards.copy()
@@ -41,6 +42,7 @@ class Study:
             'launchedDate': date,
             'participants': [],
             'sortType': sort_type,
+            'requireComment': require_comment,
 
         }
         if sort_type in ["closed","hybrid"] and categories:
@@ -64,13 +66,16 @@ class Study:
                 'editDate': 1,
                 'isLive': 1,
                 'launchedDate': 1,
-                'endDate': 1}))
+                'endDate': 1,
+                'requireComment': 1}))
             if len(study) > 0:
                 study = study[0]
             else:
                 continue
             study['id'] = str(study['_id'])
             study['_id'] = None
+            study.setdefault('requireComment', False)
+            study['requireComment'] = study['requireComment']
             studies.append(study)
         return studies
 
@@ -84,6 +89,8 @@ class Study:
         study = list(self.studies.find({'_id': ObjectId(study_id)}))[0]
         study['id'] = str(study['_id'])
         study['_id'] = None
+        study.setdefault('requireComment', False)
+        study['requireComment'] = study['requireComment']
 
         # Make full json structure
         total_participants = len(study['participants'])
@@ -136,6 +143,7 @@ class Study:
                 'launchedDate': study['launchedDate'],
                 'participants': 0,
                 'cards': study['cards'],
+                'requireComment': study['requireComment'],
                 'sortType': study.get('sortType', 'open'),
             }
             if study.get('sortType') in ['closed', 'hybrid']:
@@ -171,6 +179,7 @@ class Study:
                 'launchedDate': study['launchedDate'],
                 'participants': 0,
                 'cards': study['cards'],
+                'requireComment': study['requireComment'],
             }
 
         study['participants'] = {
@@ -251,6 +260,7 @@ class Study:
         return {
             'title': study['title'],
             'description': study['description'],
+            'requireComment': study.get('requireComment', False),
         }
     
     @staticmethod

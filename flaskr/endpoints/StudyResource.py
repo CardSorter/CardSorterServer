@@ -79,10 +79,15 @@ class StudyResource(Resource):
         study = Study()
         sort_type = req.get('sortType', 'open')
         categories = req.get('categories', {})
+        require_comment = req.get('requireComment')
         if 'link' in req:
-            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], req['link'],user_id,sort_type, categories)
+            error = study.create_study(
+                req['title'], req['description'], req['cards'], req['message'], req['link'], user_id, sort_type,
+                categories, require_comment=require_comment)
         else:
-            error = study.create_study(req['title'], req['description'], req['cards'], req['message'], 'undefined',user_id,sort_type, categories)
+            error = study.create_study(
+                req['title'], req['description'], req['cards'], req['message'], 'undefined', user_id, sort_type,
+                categories, require_comment=require_comment)
         date = datetime.datetime.now().isoformat()
 
         if error:
@@ -97,6 +102,7 @@ class StudyResource(Resource):
             'editDate': date,
             'isLive': True,
             'launchedDate': date,
+            'requireComment': require_comment,
         }
 
         return jsonify(study=res)
@@ -104,7 +110,7 @@ class StudyResource(Resource):
     def put(self):
         """
         Edits a study by changing the title or isLive status.
-        Request body should contain JSON with 'id', 'title', and/or 'isLive'.
+        Request body may contain 'title', 'isLive', 'description', and/or 'requireComment'.
         """
         # Check authentication - DO NOT EDIT
         auth_header = request.headers.get('Authorization')
@@ -125,14 +131,19 @@ class StudyResource(Resource):
         if 'isLive' in req:
             updated_properties['is_live'] = req['isLive']
         
-        if not req['isLive']:
-            updated_properties['endDate'] = datetime.datetime.now().isoformat()
         if 'description' in req:
             updated_properties['description'] = req['description']
+        if 'requireComment' in req or 'requiresComment' in req:
+            updated_properties['requires_comment'] = req.get('requireComment', req.get('requiresComment'))
        
         edit_date = datetime.datetime.now().isoformat()
         if updated_properties:
-            if study.update_study(study_id,edit_date, **updated_properties):
+            end_date = (
+                datetime.datetime.now().isoformat()
+                if 'isLive' in req and not req['isLive']
+                else None
+            )
+            if study.update_study(study_id, edit_date, endDate=end_date, **updated_properties):
                 return '',200    
         else:
             return '', 400
@@ -156,4 +167,3 @@ class StudyResource(Resource):
             return '', 204  # Successfully deleted
         else:
             return '', 500  # Internal server error during deletion
-

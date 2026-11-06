@@ -59,6 +59,7 @@ class CardSorterResource(Resource):
                 'cards': cards_return,
                 'title': title_desc['title'],
                 'description': title_desc['description'],
+                'requireComment': title_desc['requireComment'],
                 'sortType': sort_type
             }
 
