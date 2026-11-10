@@ -324,7 +324,7 @@ class Study:
         item = self.studies.insert_one(study)
         self.study_id = ObjectId(item.inserted_id)
 
-    def update_study(self, study_id,editDate,endDate=None, title=None, is_live=None,description=None):
+    def update_study(self, study_id,editDate,endDate=None, title=None, is_live=None,require_comment=None, description=None):
             """
             Update a study's title or isLive status.
             :param study_id: ID of the study to update
@@ -340,6 +340,9 @@ class Study:
                 update_data['isLive'] = is_live
             if description is not None:
                 update_data['description'] = description
+
+            if require_comment is not None:
+                update_data['requireComment'] = require_comment
 
             if update_data:  
                 result = self.studies.update_one({'_id': ObjectId(study_id)},{'$set': {'endDate': endDate,'editDate':editDate,**update_data}})
