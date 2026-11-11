@@ -133,8 +133,9 @@ class StudyResource(Resource):
         
         if 'description' in req:
             updated_properties['description'] = req['description']
-        if 'requireComment' in req or 'requiresComment' in req:
-            updated_properties['requires_comment'] = req.get('requireComment', req.get('requiresComment'))
+
+        if 'requireComment' in req :
+            updated_properties['require_comment'] = req.get('requireComment')
        
         edit_date = datetime.datetime.now().isoformat()
         if updated_properties:
